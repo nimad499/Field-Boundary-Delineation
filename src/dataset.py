@@ -57,6 +57,8 @@ def _polygon_to_mask(polygon, image_shape):
 
 def _polygon_to_box(polygon):
     minx, miny, maxx, maxy = polygon.bounds
+    # ToDo: Apply this as transformation
+    miny, maxy = -maxy, -miny
     return [minx, miny, maxx, maxy]
 
 
