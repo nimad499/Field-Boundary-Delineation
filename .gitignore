@@ -2,3 +2,4 @@ data
 out
 .env
 ToDo.txt
+__pycache__/
