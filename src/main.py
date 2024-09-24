@@ -1,21 +1,11 @@
-from model import mask_rcnn_model
-from InquirerPy import inquirer
-from train import InstanceSegmentationTrain
-import torch
-from torch.utils.data import ConcatDataset
-from pathlib import Path
-from dataset import InstanceSegmentationLazyDataset
 from enum import Enum
+from pathlib import Path
 
-# ToDo: Get config from user
+import torch
+from InquirerPy import inquirer
 
-_models = {
-    "Mask-RCNN": (
-        mask_rcnn_model,
-        InstanceSegmentationLazyDataset,
-        InstanceSegmentationTrain,
-    )
-}
+from helper import get_dataset, model_class_options, models
+
 
 if __name__ == "__main__":
 
@@ -35,38 +25,27 @@ if __name__ == "__main__":
         case _Mode.train_nem_model:
             selected_model_name = selected_format = inquirer.select(
                 message="Select a model: ",
-                choices=_models.keys(),
+                choices=models.keys(),
                 pointer="=>",
             ).execute()
-            model, appropriate_dataset, appropriate_trainer = _models[
-                selected_model_name
-            ]
+            (
+                model,
+                appropriate_dataset,
+                appropriate_trainer,
+            ) = model_class_options(models[selected_model_name])
             selected_model = model()
 
-            data_paths = []
-            image_path = Path(input("Enter image path: "))
-            boundaries_path = Path(input("Enter correspond boundaries path: "))
-            data_paths.append((image_path, boundaries_path))
-            while True:
-                image_path = input(
-                    "Enter another image path (press enter if you done): "
-                ).strip()
-                if image_path != "":
-                    image_path = Path(image_path)
-                else:
-                    break
-                boundaries_path = Path(
-                    input("Enter correspond boundaries path: ")
-                )
-                data_paths.append((image_path, boundaries_path))
-
-            dataset = ConcatDataset(
-                [appropriate_dataset(i, b) for i, b in data_paths]
-            )
+            dataset = get_dataset(appropriate_dataset)
 
             output_dir = Path(
                 input("Enter output dir(for saving log, model and ...): ")
             )
+
+            num_epochs = int(
+                input("How many epochs do you want to train for? ")
+            )
+
+            batch_size = int(input("What batch size do you want to use? "))
 
             device = (
                 torch.device("cuda")
@@ -87,8 +66,45 @@ if __name__ == "__main__":
             trainer = appropriate_trainer(
                 selected_model, optimizer, output_dir, device
             )
-            trainer.train(dataset, 100, 2)
+            trainer.train(
+                dataset,
+                num_epochs,
+                batch_size,
+            )
         case _Mode.continue_training:
-            raise NotImplementedError
+            checkpoint_path = Path(input("Enter the checkpoint output path: "))
+            checkpoint = torch.load(
+                checkpoint_path / "model" / "best_model.tar",
+                weights_only=False,
+            )
+
+            model = checkpoint["model"]
+            optimizer = checkpoint["optimizer"]
+            current_epoch = checkpoint["epoch"]
+
+            _, appropriate_dataset, appropriate_trainer = model_class_options(
+                model.__class__
+            )
+
+            dataset = get_dataset(appropriate_dataset)
+
+            output_dir = input(
+                "Enter output dir(press enter to use current path): "
+            )
+            if output_dir == "":
+                output_dir = checkpoint_path
+            else:
+                Path(output_dir)
+
+            num_epochs = int(
+                input("How many epochs do you want to train for? ")
+            )
+
+            batch_size = int(input("What batch size do you want to use? "))
+
+            trainer = appropriate_trainer(
+                model, optimizer, output_dir, current_epoch=current_epoch
+            )
+            trainer.train(dataset, num_epochs, batch_size)
         case _Mode.inference:
             raise NotImplementedError
