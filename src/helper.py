@@ -1,5 +1,8 @@
 from pathlib import Path
 
+import cv2
+import geopandas as gpd
+from shapely.geometry import Polygon
 from torch.utils.data import ConcatDataset
 from torchvision.models.detection.mask_rcnn import MaskRCNN
 
@@ -38,3 +41,22 @@ def get_dataset(appropriate_dataset):
     dataset = ConcatDataset([appropriate_dataset(i, b) for i, b in data_paths])
 
     return dataset
+
+
+def masks_to_boundary(masks, threshold=64):
+    boundaries = list()
+    for mask in masks:
+        _, thresh = cv2.threshold(mask, threshold, 255, 0)
+
+        contours, _ = cv2.findContours(
+            thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
+        )
+
+        for contour in contours:
+            if contour.shape[0] > 2:
+                polygon = Polygon(contour[:, 0, :])
+                boundaries.append(polygon)
+
+    boundaries = gpd.GeoDataFrame(geometry=boundaries)
+
+    return boundaries

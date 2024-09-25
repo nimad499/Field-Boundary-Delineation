@@ -1,11 +1,13 @@
 from enum import Enum
 from pathlib import Path
 
+import numpy as np
 import torch
+import torchvision.transforms.functional as TF
 from InquirerPy import inquirer
+from PIL import Image
 
-from helper import get_dataset, model_class_options, models
-
+from helper import get_dataset, masks_to_boundary, model_class_options, models
 
 if __name__ == "__main__":
 
@@ -107,4 +109,34 @@ if __name__ == "__main__":
             )
             trainer.train(dataset, num_epochs, batch_size)
         case _Mode.INFERENCE:
-            raise NotImplementedError
+            device = (
+                torch.device("cuda")
+                if torch.cuda.is_available()
+                else torch.device("cpu")
+            )
+
+            checkpoint_path = Path(input("Enter the checkpoint output path: "))
+            checkpoint = torch.load(
+                checkpoint_path / "model" / "best_model.tar",
+                weights_only=False,
+            )
+
+            model: torch.nn.Module = checkpoint["model"]
+            model.eval()
+            model.to(device)
+
+            image_path = Path(input("Enter the image path: "))
+            image = Image.open(image_path)
+            image = TF.to_tensor(image).unsqueeze(0).to(device)
+
+            output_dir = input(
+                "Enter output dir(press enter to use image path): "
+            )
+            if output_dir == "":
+                output_dir = image_path
+            else:
+                output_dir = Path(output_dir)
+
+            masks = model(image)[0]["masks"].cpu().detach().numpy()[:, 0, :, :]
+            boundaries = masks_to_boundary((masks * 255).astype(np.uint8))
+            boundaries.to_file(output_dir / f"{image_path.stem}.shp")
