@@ -35,14 +35,14 @@ def _get_valid_longitude():
         lon_str = input("Enter longitude (-180 to 180): ")
 
         try:
-            lon = float(lon_str)
+            lon_float = float(lon_str)
 
-            if -180 <= lon <= 180:
-                return lon
-            else:
-                print(
-                    f"Longitude must be between -180 and 180. Current value: {lon}"
-                )
+            if -180 <= lon_float <= 180:
+                return lon_float
+
+            print(
+                f"Longitude must be between -180 and 180. Current value: {lon_float}"
+            )
         except ValueError:
             print("Invalid input. Please enter a number.")
 
@@ -52,14 +52,14 @@ def _get_valid_latitude():
         lat_str = input("Enter latitude (-90 to 90): ")
 
         try:
-            lat = float(lat_str)
+            lat_float = float(lat_str)
 
-            if -90 <= lat <= 90:
-                return lat
-            else:
-                print(
-                    f"Latitude must be between -90 and 90. Current value: {lat}"
-                )
+            if -90 <= lat_float <= 90:
+                return lat_float
+
+            print(
+                f"Latitude must be between -90 and 90. Current value: {lat_float}"
+            )
         except ValueError:
             print("Invalid input. Please enter a number.")
 
@@ -84,9 +84,9 @@ if __name__ == "__main__":
     parser.add_argument("--fetch-collections", action="store_true")
     args = parser.parse_args()
 
-    _api_url = "https://planetarycomputer.microsoft.com/api/stac/v1"
+    _API_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
     catalog = Client.open(
-        _api_url,
+        _API_URL,
         modifier=pc.sign_inplace,
     )
 

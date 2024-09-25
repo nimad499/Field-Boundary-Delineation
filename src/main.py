@@ -10,9 +10,9 @@ from helper import get_dataset, model_class_options, models
 if __name__ == "__main__":
 
     class _Mode(Enum):
-        train_nem_model = "Train new model"
-        continue_training = "Continue training"
-        inference = "Inference"
+        TRAIN_NEW_MODEL = "Train new model"
+        CONTINUE_TRAINING = "Continue training"
+        INFERENCE = "Inference"
 
     mode = selected_format = inquirer.select(
         message="Select a mode: ",
@@ -22,7 +22,7 @@ if __name__ == "__main__":
     mode = _Mode(mode)
 
     match mode:
-        case _Mode.train_nem_model:
+        case _Mode.TRAIN_NEW_MODEL:
             selected_model_name = selected_format = inquirer.select(
                 message="Select a model: ",
                 choices=models.keys(),
@@ -71,7 +71,7 @@ if __name__ == "__main__":
                 num_epochs,
                 batch_size,
             )
-        case _Mode.continue_training:
+        case _Mode.CONTINUE_TRAINING:
             checkpoint_path = Path(input("Enter the checkpoint output path: "))
             checkpoint = torch.load(
                 checkpoint_path / "model" / "best_model.tar",
@@ -106,5 +106,5 @@ if __name__ == "__main__":
                 model, optimizer, output_dir, current_epoch=current_epoch
             )
             trainer.train(dataset, num_epochs, batch_size)
-        case _Mode.inference:
+        case _Mode.INFERENCE:
             raise NotImplementedError
