@@ -2,38 +2,46 @@ import argparse
 import os
 import pathlib
 
-from PIL import Image
+import rasterio
+from rasterio.windows import Window
 
 
 def crop_image(input_image_path, output_path, square_size):
     output_path = output_path / input_image_path.name
-
     os.makedirs(output_path, exist_ok=True)
 
     input_image_suffix = input_image_path.suffix
 
-    # ToDo: Slide a window instead of open it at once
-    with Image.open(input_image_path) as img:
-        width, height = img.size
+    with rasterio.open(input_image_path) as src:
+        window_width, window_height = (
+            square_size,
+            square_size,
+        )
 
-        cols = int(height / square_size)
-        rows = int(width / square_size)
+        image_width = src.width
+        image_height = src.height
 
-        for row in range(rows):
-            for col in range(cols):
-                left = col * square_size
-                upper = row * square_size
-                right = (col + 1) * square_size
-                lower = (row + 1) * square_size
-
-                right = min(right, width)
-                lower = min(lower, height)
-
-                cropped_img = img.crop((left, upper, right, lower))
-
-                cropped_img.save(
-                    output_path / f"{col}_{row}{input_image_suffix}"
+        for row in range(0, image_height, window_height):
+            for col in range(0, image_width, window_width):
+                window = Window(
+                    col_off=col,
+                    row_off=row,
+                    width=min(window_width, image_width - col),
+                    height=min(window_height, image_height - row),
                 )
+
+                data = src.read(window=window)
+
+                with rasterio.open(
+                    output_path
+                    / f"{int(col/window_width)}_{int(row/window_height)}{input_image_suffix}",
+                    "w",
+                    height=window.height,
+                    width=window.width,
+                    count=src.count,
+                    dtype=src.dtypes[0],
+                ) as dest:
+                    dest.write(data)
 
 
 if __name__ == "__main__":
