@@ -1,5 +1,7 @@
 import argparse
+import atexit
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
@@ -12,7 +14,7 @@ from InquirerPy import inquirer
 from pystac_client import Client
 from tqdm import tqdm
 
-# ToDo: Delete files on cancel
+# ToDo: Add option to download from json file
 
 
 def _get_valid_date(message):
@@ -71,10 +73,18 @@ def _download_with_progress(url, output_path):
 
     with tqdm(total=total_size, unit="iB", unit_scale=True) as progress_bar:
         with open(output_path, "wb") as file:
+
+            def delete_file():
+                return os.remove(output_path)
+
+            atexit.register(delete_file)
+
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
 
                 progress_bar.update(len(chunk))
+
+            atexit.unregister(delete_file)
 
     print(f"Download completed. Total size: {total_size} bytes.")
 
@@ -154,12 +164,12 @@ if __name__ == "__main__":
     file_name = path_parts[-1]
     file_name_stem = Path(file_name).stem
 
+    _download_with_progress(image_url, output_path / file_name)
+
     with open(
         output_path / f"{file_name_stem}.json", "w", encoding="utf-8"
     ) as f:
         json.dump(selected_item.to_dict(), f, indent=4, sort_keys=False)
-
-    _download_with_progress(image_url, output_path / file_name)
 
     print(f"Output path: {output_path.absolute()}")
     print(f"Output file: {file_name}")
