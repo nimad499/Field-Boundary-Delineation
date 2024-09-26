@@ -102,3 +102,34 @@ class InstanceSegmentationTrain(BaseTrain):
 
         avg_loss = running_loss / num_batches
         return avg_loss
+
+
+class SemanticSegmentationTrain(BaseTrain):
+    def _dataloader(self, dataset, batch_size):
+        return DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=True,
+        )
+
+    def _train_one_epoch(self, dataloader):
+        running_loss = 0.0
+        num_batches = len(dataloader)
+        criterion = torch.nn.CrossEntropyLoss()
+        for images, masks in dataloader:
+            images = images.to(self.device)
+            masks = masks.to(self.device)
+
+            outputs = self.model(images)
+
+            loss = criterion(outputs, masks)
+
+            self.optimizer.zero_grad()
+
+            loss.backward()
+            self.optimizer.step()
+
+            running_loss += loss.item()
+
+        avg_loss = running_loss / num_batches
+        return avg_loss
