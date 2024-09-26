@@ -82,6 +82,8 @@ class InstanceSegmentationTrain(BaseTrain):
         )
 
     def _train_one_epoch(self, dataloader):
+        running_loss = 0.0
+        num_batches = len(dataloader)
         for images, targets in dataloader:
             images = [image.to(self.device) for image in images]
             targets = [
@@ -96,4 +98,7 @@ class InstanceSegmentationTrain(BaseTrain):
             loss.backward()
             self.optimizer.step()
 
-        return loss.item()
+            running_loss += loss.item()
+
+        avg_loss = running_loss / num_batches
+        return avg_loss
