@@ -44,7 +44,7 @@ def crop_image(input_image_path, output_path, square_size):
                     dest.write(data)
 
 
-if __name__ == "__main__":
+def main_function():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-i", "--input", help="Input image", required=True, type=pathlib.Path
@@ -68,3 +68,7 @@ if __name__ == "__main__":
     crop_image(input_image_path, output_dir, size)
 
     print("Image cropped")
+
+
+if __name__ == "__main__":
+    main_function()

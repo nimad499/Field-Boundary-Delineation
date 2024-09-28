@@ -1,4 +1,3 @@
-import argparse
 import atexit
 import json
 import os
@@ -89,18 +88,21 @@ def _download_with_progress(url, output_path):
     print(f"Download completed. Total size: {total_size} bytes.")
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--fetch-collections", action="store_true")
-    args = parser.parse_args()
-
+def main_function():
     _API_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
     catalog = Client.open(
         _API_URL,
         modifier=pc.sign_inplace,
     )
 
-    if args.fetch_collections:
+    fetch_collections = inquirer.select(
+        message="Do you want to fetch the collections: ",
+        choices=("Yes", "No"),
+        pointer="=>",
+    ).execute()
+    fetch_collections = fetch_collections == "Yes"
+
+    if fetch_collections:
         selected_collection = inquirer.select(
             message="Select a collection: ",
             choices=(c.id for c in catalog.get_all_collections()),
@@ -173,3 +175,7 @@ if __name__ == "__main__":
 
     print(f"Output path: {output_path.absolute()}")
     print(f"Output file: {file_name}")
+
+
+if __name__ == "__main__":
+    main_function()
