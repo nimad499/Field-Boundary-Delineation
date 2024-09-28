@@ -7,11 +7,15 @@ import torchvision.transforms.functional as TF
 from InquirerPy import inquirer
 from PIL import Image
 
+import image_crop
+import image_download
 from helper import get_dataset, masks_to_boundary, model_class_options, models
 
 if __name__ == "__main__":
 
     class _Mode(Enum):
+        DOWNLOAD_IMAGE = "Download Image"
+        CROP_IMAGE = "Crop Image"
         TRAIN_NEW_MODEL = "Train new model"
         CONTINUE_TRAINING = "Continue training"
         INFERENCE = "Inference"
@@ -24,6 +28,16 @@ if __name__ == "__main__":
     mode = _Mode(mode)
 
     match mode:
+        case _Mode.DOWNLOAD_IMAGE:
+            image_download.main_function()
+
+        case _Mode.CROP_IMAGE:
+            input_path = Path(input("Enter input image path: "))
+            output_dir = Path(input("Enter output directory: "))
+            square_size = int(input("Enter square size: "))
+
+            image_crop.crop_image(input_path, output_dir, square_size)
+
         case _Mode.TRAIN_NEW_MODEL:
             selected_model_name = selected_format = inquirer.select(
                 message="Select a model: ",
@@ -73,6 +87,7 @@ if __name__ == "__main__":
                 num_epochs,
                 batch_size,
             )
+
         case _Mode.CONTINUE_TRAINING:
             checkpoint_path = Path(input("Enter the checkpoint output path: "))
             checkpoint = torch.load(
@@ -108,6 +123,7 @@ if __name__ == "__main__":
                 model, optimizer, output_dir, current_epoch=current_epoch
             )
             trainer.train(dataset, num_epochs, batch_size)
+
         case _Mode.INFERENCE:
             device = (
                 torch.device("cuda")
