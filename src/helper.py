@@ -5,12 +5,16 @@ import geopandas as gpd
 from shapely.geometry import Polygon
 from torch.utils.data import ConcatDataset
 from torchvision.models.detection.mask_rcnn import MaskRCNN
+from torchvision.models.segmentation import DeepLabV3
 
-from dataset import InstanceSegmentationLazyDataset
-from model import mask_rcnn_model
-from train import InstanceSegmentationTrain
+from dataset import (
+    InstanceSegmentationLazyDataset,
+    SemanticSegmentationLazyDataset,
+)
+from model import deeplabv3_model, mask_rcnn_model
+from train import InstanceSegmentationTrain, SemanticSegmentationTrain
 
-models = {"Mask-RCNN": MaskRCNN}
+models = {"Mask-RCNN": MaskRCNN, "DeepLab": DeepLabV3}
 
 
 def model_class_options(target_class):
@@ -20,6 +24,14 @@ def model_class_options(target_class):
             InstanceSegmentationLazyDataset,
             InstanceSegmentationTrain,
         )
+    elif issubclass(target_class, DeepLabV3):
+        return (
+            deeplabv3_model,
+            SemanticSegmentationLazyDataset,
+            SemanticSegmentationTrain,
+        )
+    else:
+        raise ValueError
 
 
 def get_dataset(appropriate_dataset):

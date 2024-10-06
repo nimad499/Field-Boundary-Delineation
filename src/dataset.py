@@ -69,7 +69,7 @@ def _rasterize_shapefile(shapefile, image_shape):
         rasterized = _polygon_to_mask(geometry, image_shape)
         mask = np.maximum(mask, rasterized.astype(np.uint8))
 
-    return Image.fromarray(mask)
+    return mask
 
 
 class InstanceSegmentationLazyDataset(Dataset):
@@ -136,4 +136,4 @@ class SemanticSegmentationLazyDataset(Dataset):
 
         mask = _rasterize_shapefile(boundaries, image_shape)
 
-        return F_vis.to_tensor(image), mask
+        return F_vis.to_tensor(image), torch.tensor(mask, dtype=torch.long)
