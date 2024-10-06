@@ -122,7 +122,7 @@ class SemanticSegmentationTrain(BaseTrain):
 
             outputs = self.model(images)
 
-            loss = criterion(outputs, masks)
+            loss = criterion(outputs["out"], masks)
 
             self.optimizer.zero_grad()
 

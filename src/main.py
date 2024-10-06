@@ -20,7 +20,7 @@ if __name__ == "__main__":
         CONTINUE_TRAINING = "Continue training"
         INFERENCE = "Inference"
 
-    mode = selected_format = inquirer.select(
+    mode = inquirer.select(
         message="Select a mode: ",
         choices=[m.value for m in _Mode],
         pointer="=>",
@@ -39,7 +39,7 @@ if __name__ == "__main__":
             image_crop.crop_image(input_path, output_dir, square_size)
 
         case _Mode.TRAIN_NEW_MODEL:
-            selected_model_name = selected_format = inquirer.select(
+            selected_model_name = inquirer.select(
                 message="Select a model: ",
                 choices=models.keys(),
                 pointer="=>",
