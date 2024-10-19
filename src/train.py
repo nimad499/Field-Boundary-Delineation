@@ -24,7 +24,7 @@ class BaseTrain(ABC):
         self.output_dir = output_dir
         self.device = device
         if device is None:
-            device = (
+            self.device = (
                 torch.device("cuda")
                 if torch.cuda.is_available()
                 else torch.device("cpu")
@@ -51,9 +51,7 @@ class BaseTrain(ABC):
         self.model.train()
         best_loss = float("inf")
         best_epoch = float("inf")
-        for epoch in range(
-            self.current_epoch, num_epochs + self.current_epoch
-        ):
+        for epoch in range(self.current_epoch, num_epochs + self.current_epoch):
             loss = self._train_one_epoch(dataloader)
             self._log(epoch, loss)
             self.current_epoch = epoch
@@ -86,9 +84,7 @@ class InstanceSegmentationTrain(BaseTrain):
         num_batches = len(dataloader)
         for images, targets in dataloader:
             images = [image.to(self.device) for image in images]
-            targets = [
-                {k: v.to(self.device) for k, v in t.items()} for t in targets
-            ]
+            targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
 
             loss_dict = self.model(images, targets)
 
