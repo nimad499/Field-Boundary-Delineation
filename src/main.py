@@ -57,9 +57,7 @@ if __name__ == "__main__":
                 input("Enter output dir(for saving log, model and ...): ")
             )
 
-            num_epochs = int(
-                input("How many epochs do you want to train for? ")
-            )
+            num_epochs = int(input("How many epochs do you want to train for? "))
 
             batch_size = int(input("What batch size do you want to use? "))
 
@@ -69,9 +67,7 @@ if __name__ == "__main__":
                 else torch.device("cpu")
             )
 
-            params = [
-                p for p in selected_model.parameters() if p.requires_grad
-            ]
+            params = [p for p in selected_model.parameters() if p.requires_grad]
             optimizer = torch.optim.SGD(
                 params,
                 lr=0.005,
@@ -79,9 +75,7 @@ if __name__ == "__main__":
                 weight_decay=0.0005,
             )
 
-            trainer = appropriate_trainer(
-                selected_model, optimizer, output_dir, device
-            )
+            trainer = appropriate_trainer(selected_model, optimizer, output_dir, device)
             trainer.train(
                 dataset,
                 num_epochs,
@@ -105,17 +99,13 @@ if __name__ == "__main__":
 
             dataset = get_dataset(appropriate_dataset)
 
-            output_dir = input(
-                "Enter output dir(press enter to use current path): "
-            )
+            output_dir = input("Enter output dir(press enter to use current path): ")
             if output_dir == "":
                 output_dir = checkpoint_path
             else:
-                Path(output_dir)
+                output_dir = Path(output_dir)
 
-            num_epochs = int(
-                input("How many epochs do you want to train for? ")
-            )
+            num_epochs = int(input("How many epochs do you want to train for? "))
 
             batch_size = int(input("What batch size do you want to use? "))
 
@@ -145,9 +135,7 @@ if __name__ == "__main__":
             image = Image.open(image_path)
             image = TF.to_tensor(image).unsqueeze(0).to(device)
 
-            output_dir = input(
-                "Enter output dir(press enter to use image path): "
-            )
+            output_dir = input("Enter output dir(press enter to use image path): ")
             if output_dir == "":
                 output_dir = image_path
             else:
