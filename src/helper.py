@@ -2,6 +2,8 @@ from pathlib import Path
 
 import cv2
 import geopandas as gpd
+import numpy as np
+import torch
 from shapely.geometry import Polygon
 from torch.utils.data import ConcatDataset
 from torchvision.models.detection.mask_rcnn import MaskRCNN
@@ -60,9 +62,7 @@ def masks_to_boundary(masks, threshold=64):
     for mask in masks:
         _, thresh = cv2.threshold(mask, threshold, 255, 0)
 
-        contours, _ = cv2.findContours(
-            thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
-        )
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
         for contour in contours:
             if contour.shape[0] > 2:
@@ -72,3 +72,22 @@ def masks_to_boundary(masks, threshold=64):
     boundaries = gpd.GeoDataFrame(geometry=boundaries)
 
     return boundaries
+
+
+def model_masks_output(model, image):
+    output = model(image)
+
+    if isinstance(output, list):
+        masks = output[0]["masks"].cpu().detach().numpy()[:, 0, :, :]
+
+    elif isinstance(output, dict):
+        segmentation_map = (
+            torch.argmax(output["out"].squeeze(), dim=0).cpu().detach().numpy()
+        )
+
+        masks = segmentation_map[None, :, :]
+
+    else:
+        raise ValueError("Unsupported model mask format.")
+
+    return masks

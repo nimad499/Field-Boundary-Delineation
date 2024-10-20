@@ -51,7 +51,7 @@ class BaseTrain(ABC):
         self.model.train()
         best_loss = float("inf")
         best_epoch = float("inf")
-        for epoch in range(self.current_epoch, num_epochs + self.current_epoch):
+        for epoch in range(self.current_epoch + 1, num_epochs + self.current_epoch + 1):
             loss = self._train_one_epoch(dataloader)
             self._log(epoch, loss)
             self.current_epoch = epoch
