@@ -9,7 +9,13 @@ from PIL import Image
 
 import image_crop
 import image_download
-from helper import get_dataset, masks_to_boundary, model_class_options, models
+from helper import (
+    get_dataset,
+    masks_to_boundary,
+    model_class_options,
+    models,
+    model_masks_output,
+)
 
 if __name__ == "__main__":
 
@@ -141,6 +147,6 @@ if __name__ == "__main__":
             else:
                 output_dir = Path(output_dir)
 
-            masks = model(image)[0]["masks"].cpu().detach().numpy()[:, 0, :, :]
+            masks = model_masks_output(model, image)
             boundaries = masks_to_boundary((masks * 255).astype(np.uint8))
             boundaries.to_file(output_dir / f"{image_path.stem}.shp")
