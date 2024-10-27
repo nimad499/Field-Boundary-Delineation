@@ -3,8 +3,9 @@ from pathlib import Path
 
 import torch
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
-# ToDo: Add validation and improve logging
+# ToDo: Add validation
 # ToDo: Add LR Scheduler
 # ToDo: Track the best model
 # ToDo: Add checkpoint
@@ -17,7 +18,7 @@ class BaseTrain(ABC):
         optimizer,
         output_dir: Path,
         device=None,
-        current_epoch=1,
+        current_epoch=0,
     ):
         self.model = model
         self.optimizer = optimizer
@@ -38,6 +39,8 @@ class BaseTrain(ABC):
     def _train_one_epoch(self, dataloader): ...
 
     def _log(self, epoch, loss):
+        self.writer.add_scalar("Loss/train", loss, epoch)
+
         print(f"Epoch {epoch}: {loss}")
 
     def train(self, dataset, num_epochs, batch_size):
@@ -46,6 +49,8 @@ class BaseTrain(ABC):
         self.output_dir.mkdir(parents=True, exist_ok=True)
         (self.output_dir / "model").mkdir(parents=True, exist_ok=True)
         (self.output_dir / "log").mkdir(parents=True, exist_ok=True)
+
+        self.writer = SummaryWriter(log_dir=self.output_dir / "log")
 
         self.model = self.model.to(self.device)
         self.model.train()
@@ -68,6 +73,8 @@ class BaseTrain(ABC):
                     },
                     self.output_dir / "model" / "best_model.tar",
                 )
+
+        self.writer.close()
 
 
 class InstanceSegmentationTrain(BaseTrain):
