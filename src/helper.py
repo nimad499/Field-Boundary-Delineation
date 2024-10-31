@@ -2,7 +2,6 @@ from pathlib import Path
 
 import cv2
 import geopandas as gpd
-import numpy as np
 import torch
 from shapely.geometry import Polygon
 from torch.utils.data import ConcatDataset
@@ -70,6 +69,8 @@ def masks_to_boundary(masks, threshold=64):
                 boundaries.append(polygon)
 
     boundaries = gpd.GeoDataFrame(geometry=boundaries)
+    
+    boundaries["geometry"] = boundaries["geometry"].apply(lambda g: Polygon([(abs(x), -abs(y)) for x, y in g.exterior.coords]))
 
     return boundaries
 
