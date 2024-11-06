@@ -1,6 +1,7 @@
 from enum import Enum
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torchvision.transforms.functional as TF
@@ -10,11 +11,12 @@ from PIL import Image
 import image_crop
 import image_download
 from helper import (
+    boundaries_mirror_y,
     get_dataset,
     masks_to_boundary,
     model_class_options,
-    models,
     model_masks_output,
+    models,
 )
 
 if __name__ == "__main__":
@@ -139,7 +141,7 @@ if __name__ == "__main__":
 
             image_path = Path(input("Enter the image path: "))
             image = Image.open(image_path)
-            image = TF.to_tensor(image).unsqueeze(0).to(device)
+            image_tensor = TF.to_tensor(image).unsqueeze(0).to(device)
 
             output_dir = input("Enter output dir(press enter to use image path): ")
             if output_dir == "":
@@ -147,6 +149,12 @@ if __name__ == "__main__":
             else:
                 output_dir = Path(output_dir)
 
-            masks = model_masks_output(model, image)
+            masks = model_masks_output(model, image_tensor)
             boundaries = masks_to_boundary((masks * 255).astype(np.uint8))
-            boundaries.to_file(output_dir / f"{image_path.stem}.shp")
+            boundaries_mirrored = boundaries_mirror_y(boundaries)
+            boundaries_mirrored.to_file(output_dir / f"{image_path.stem}.shp")
+
+            fig, ax = plt.subplots()
+            ax.imshow(image)
+            boundaries.boundary.plot(ax=ax, edgecolor="red")
+            plt.show()

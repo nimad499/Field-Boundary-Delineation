@@ -69,10 +69,18 @@ def masks_to_boundary(masks, threshold=64):
                 boundaries.append(polygon)
 
     boundaries = gpd.GeoDataFrame(geometry=boundaries)
-    
-    boundaries["geometry"] = boundaries["geometry"].apply(lambda g: Polygon([(abs(x), -abs(y)) for x, y in g.exterior.coords]))
 
     return boundaries
+
+
+def boundaries_mirror_y(boundaries: gpd.GeoDataFrame):
+    boundaries_copy = boundaries.copy()
+
+    boundaries_copy["geometry"] = boundaries_copy["geometry"].apply(
+        lambda g: Polygon([(abs(x), -abs(y)) for x, y in g.exterior.coords])
+    )
+
+    return boundaries_copy
 
 
 def model_masks_output(model, image):
