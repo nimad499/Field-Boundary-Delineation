@@ -1,4 +1,9 @@
 # Field Boundary Delineation
+This project aims to automate the delineation of agricultural field boundaries using machine learning, specifically through image segmentation algorithms. You can choose between semantic segmentation and instance segmentation models.
+
+Both the input (for training) and output boundaries use the shapefile format, which is a standard in the field of remote sensing. To work with this format, you can use various tools such as QGIS or ArcGIS.
+
+Additionally, satellite images can be easily downloaded from sources such as Planetary Computer, Google Earth Engine, or others. To simplify the download process, a tool has been implemented in this project, allowing you to easily download satellite images from Planetary Computer as a source.
 ## How to add a new model?
 To add a new model, start by writing a function that returns your model in `src/model.py`. For example:
 ```py
