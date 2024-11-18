@@ -143,7 +143,9 @@ if __name__ == "__main__":
             image = Image.open(image_path)
             image_tensor = TF.to_tensor(image).unsqueeze(0).to(device)
 
-            output_dir = input("Enter output dir(press enter to use image path): ")
+            output_dir = input(
+                "Enter the output directory(press enter to use image path): "
+            )
             if output_dir == "":
                 output_dir = image_path
             else:
