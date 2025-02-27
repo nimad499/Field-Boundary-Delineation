@@ -7,6 +7,7 @@ import torch
 import torchvision.transforms.functional as TF
 from InquirerPy import inquirer
 from PIL import Image
+from torch.utils.data import ConcatDataset
 
 import image_crop
 import image_download
@@ -18,6 +19,84 @@ from helper import (
     model_masks_output,
     models,
 )
+
+
+def train_new_model(
+    model_architecture, dataset_paths, output_dir_path, num_epochs, batch_size
+):
+    (
+        model,
+        appropriate_dataset,
+        appropriate_trainer,
+    ) = model_class_options(models[model_architecture])
+    selected_model = model()
+
+    dataset = ConcatDataset([appropriate_dataset(i, b) for i, b in dataset_paths])
+
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+    params = [p for p in selected_model.parameters() if p.requires_grad]
+    optimizer = torch.optim.SGD(
+        params,
+        lr=0.005,
+        momentum=0.9,
+        weight_decay=0.0005,
+    )
+
+    trainer = appropriate_trainer(selected_model, optimizer, output_dir_path, device)
+    trainer.train(
+        dataset,
+        num_epochs,
+        batch_size,
+    )
+
+
+def continue_training(
+    model_path, dataset_paths, output_dir_path, num_epochs, batch_size
+):
+    checkpoint = torch.load(
+        model_path,
+        weights_only=False,
+    )
+
+    model = checkpoint["model"]
+    optimizer = checkpoint["optimizer"]
+    current_epoch = checkpoint["epoch"]
+
+    _, appropriate_dataset, appropriate_trainer = model_class_options(model.__class__)
+    dataset = ConcatDataset([appropriate_dataset(i, b) for i, b in dataset_paths])
+
+    trainer = appropriate_trainer(
+        model, optimizer, output_dir_path, current_epoch=current_epoch
+    )
+    trainer.train(dataset, num_epochs, batch_size)
+
+
+def inference(model_path, image_path, output_dir_path):
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+    checkpoint = torch.load(
+        model_path,
+        weights_only=False,
+    )
+
+    model: torch.nn.Module = checkpoint["model"]
+    model.eval()
+    model.to(device)
+
+    image = Image.open(image_path)
+    image_tensor = TF.to_tensor(image).unsqueeze(0).to(device)
+
+    masks = model_masks_output(model, image_tensor)
+    boundaries = masks_to_boundary((masks * 255).astype(np.uint8))
+    boundaries_mirrored = boundaries_mirror_y(boundaries)
+    boundaries_mirrored.to_file(output_dir_path / f"{image_path.stem}.shp")
+
+    _, ax = plt.subplots()
+    ax.imshow(image)
+    boundaries.boundary.plot(ax=ax, edgecolor="red")
+    plt.show()
+
 
 if __name__ == "__main__":
 
@@ -47,21 +126,15 @@ if __name__ == "__main__":
             image_crop.crop_image(input_path, output_dir, square_size)
 
         case _Mode.TRAIN_NEW_MODEL:
-            selected_model_name = inquirer.select(
+            model_architecture = inquirer.select(
                 message="Select a model: ",
                 choices=models.keys(),
                 pointer="=>",
             ).execute()
-            (
-                model,
-                appropriate_dataset,
-                appropriate_trainer,
-            ) = model_class_options(models[selected_model_name])
-            selected_model = model()
 
-            dataset = get_dataset(appropriate_dataset)
+            dataset_paths = get_dataset()
 
-            output_dir = Path(
+            output_dir_path = Path(
                 input("Enter output dir(for saving log, model and ...): ")
             )
 
@@ -69,94 +142,46 @@ if __name__ == "__main__":
 
             batch_size = int(input("What batch size do you want to use? "))
 
-            device = (
-                torch.device("cuda")
-                if torch.cuda.is_available()
-                else torch.device("cpu")
-            )
-
-            params = [p for p in selected_model.parameters() if p.requires_grad]
-            optimizer = torch.optim.SGD(
-                params,
-                lr=0.005,
-                momentum=0.9,
-                weight_decay=0.0005,
-            )
-
-            trainer = appropriate_trainer(selected_model, optimizer, output_dir, device)
-            trainer.train(
-                dataset,
+            train_new_model(
+                model_architecture,
+                dataset_paths,
+                output_dir_path,
                 num_epochs,
                 batch_size,
             )
 
         case _Mode.CONTINUE_TRAINING:
             checkpoint_path = Path(input("Enter the checkpoint output path: "))
-            checkpoint = torch.load(
-                checkpoint_path / "model" / "best_model.tar",
-                weights_only=False,
+            model_path = checkpoint_path / "model" / "best_model.tar"
+
+            dataset_paths = get_dataset()
+
+            output_dir_path = input(
+                "Enter output dir(press enter to use current path): "
             )
-
-            model = checkpoint["model"]
-            optimizer = checkpoint["optimizer"]
-            current_epoch = checkpoint["epoch"]
-
-            _, appropriate_dataset, appropriate_trainer = model_class_options(
-                model.__class__
-            )
-
-            dataset = get_dataset(appropriate_dataset)
-
-            output_dir = input("Enter output dir(press enter to use current path): ")
-            if output_dir == "":
-                output_dir = checkpoint_path
+            if output_dir_path == "":
+                output_dir_path = checkpoint_path
             else:
-                output_dir = Path(output_dir)
+                output_dir_path = Path(output_dir_path)
 
             num_epochs = int(input("How many epochs do you want to train for? "))
 
             batch_size = int(input("What batch size do you want to use? "))
 
-            trainer = appropriate_trainer(
-                model, optimizer, output_dir, current_epoch=current_epoch
+            continue_training(
+                model_path,
+                dataset_paths,
+                output_dir_path,
+                num_epochs,
+                batch_size,
             )
-            trainer.train(dataset, num_epochs, batch_size)
 
         case _Mode.INFERENCE:
-            device = (
-                torch.device("cuda")
-                if torch.cuda.is_available()
-                else torch.device("cpu")
-            )
-
             checkpoint_path = Path(input("Enter the checkpoint output path: "))
-            checkpoint = torch.load(
-                checkpoint_path / "model" / "best_model.tar",
-                weights_only=False,
-            )
-
-            model: torch.nn.Module = checkpoint["model"]
-            model.eval()
-            model.to(device)
+            model_path = checkpoint_path / "model" / "best_model.tar"
 
             image_path = Path(input("Enter the image path: "))
-            image = Image.open(image_path)
-            image_tensor = TF.to_tensor(image).unsqueeze(0).to(device)
 
-            output_dir = input(
-                "Enter the output directory(press enter to use image path): "
-            )
-            if output_dir == "":
-                output_dir = image_path
-            else:
-                output_dir = Path(output_dir)
+            output_dir_path = Path(input("Enter the output directory: "))
 
-            masks = model_masks_output(model, image_tensor)
-            boundaries = masks_to_boundary((masks * 255).astype(np.uint8))
-            boundaries_mirrored = boundaries_mirror_y(boundaries)
-            boundaries_mirrored.to_file(output_dir / f"{image_path.stem}.shp")
-
-            fig, ax = plt.subplots()
-            ax.imshow(image)
-            boundaries.boundary.plot(ax=ax, edgecolor="red")
-            plt.show()
+            inference(model_path, image_path, output_dir_path)

@@ -35,7 +35,7 @@ def model_class_options(target_class):
         raise ValueError
 
 
-def get_dataset(appropriate_dataset):
+def get_dataset():
     data_paths = []
     image_path = Path(input("Enter image path: "))
     boundaries_path = Path(input("Enter correspond boundaries path: "))
@@ -51,9 +51,7 @@ def get_dataset(appropriate_dataset):
         boundaries_path = Path(input("Enter correspond boundaries path: "))
         data_paths.append((image_path, boundaries_path))
 
-    dataset = ConcatDataset([appropriate_dataset(i, b) for i, b in data_paths])
-
-    return dataset
+    return data_paths
 
 
 def masks_to_boundary(masks, threshold=64):
