@@ -41,9 +41,7 @@ def _get_valid_longitude():
             if -180 <= lon_float <= 180:
                 return lon_float
 
-            print(
-                f"Longitude must be between -180 and 180. Current value: {lon_float}"
-            )
+            print(f"Longitude must be between -180 and 180. Current value: {lon_float}")
         except ValueError:
             print("Invalid input. Please enter a number.")
 
@@ -58,9 +56,7 @@ def _get_valid_latitude():
             if -90 <= lat_float <= 90:
                 return lat_float
 
-            print(
-                f"Latitude must be between -90 and 90. Current value: {lat_float}"
-            )
+            print(f"Latitude must be between -90 and 90. Current value: {lat_float}")
         except ValueError:
             print("Invalid input. Please enter a number.")
 
@@ -88,12 +84,47 @@ def _download_with_progress(url, output_path):
     print(f"Download completed. Total size: {total_size} bytes.")
 
 
-def main_function():
-    _API_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
+def get_catalog(url: str = "https://planetarycomputer.microsoft.com/api/stac/v1"):
     catalog = Client.open(
-        _API_URL,
+        url,
         modifier=pc.sign_inplace,
     )
+
+    return catalog
+
+
+def catalog_search(
+    catalog: Client, start_date: str, end_date: str, lon, lat, collection: str
+):
+    date_range = {"interval": [start_date, end_date]}
+    point_geometry = {"type": "Point", "coordinates": [lon, lat]}
+
+    search_result = catalog.search(
+        filter_lang="cql2-json",
+        filter={
+            "op": "and",
+            "args": [
+                {
+                    "op": "anyinteracts",
+                    "args": [{"property": "datetime"}, date_range],
+                },
+                {
+                    "op": "s_intersects",
+                    "args": [{"property": "geometry"}, point_geometry],
+                },
+                {
+                    "op": "=",
+                    "args": [{"property": "collection"}, collection],
+                },
+            ],
+        },
+    )
+
+    return search_result
+
+
+def main_function():
+    catalog = get_catalog()
 
     fetch_collections = inquirer.select(
         message="Do you want to fetch the collections: ",
@@ -113,35 +144,16 @@ def main_function():
 
     lon = _get_valid_longitude()
     lat = _get_valid_latitude()
-    point_geometry = {"type": "Point", "coordinates": [lon, lat]}
 
     start_date = _get_valid_date("Enter start date in (YYYY-MM-DD) format: ")
     # ToDo: Check if end_date is older than start_date
     end_date = _get_valid_date("Enter end date in (YYYY-MM-DD) format: ")
-    date_range = {"interval": [start_date, end_date]}
 
-    search = catalog.search(
-        filter_lang="cql2-json",
-        filter={
-            "op": "and",
-            "args": [
-                {
-                    "op": "anyinteracts",
-                    "args": [{"property": "datetime"}, date_range],
-                },
-                {
-                    "op": "s_intersects",
-                    "args": [{"property": "geometry"}, point_geometry],
-                },
-                {
-                    "op": "=",
-                    "args": [{"property": "collection"}, selected_collection],
-                },
-            ],
-        },
+    search_result = catalog_search(
+        catalog, start_date, end_date, lon, lat, selected_collection
     )
 
-    items = search.item_collection()
+    items = search_result.item_collection()
     items_df = gpd.GeoDataFrame.from_features(items.to_dict(), crs="epsg:4326")
     _items_df_cols_filter = ["datetime", "eo:cloud_cover"]
     print(items_df[_items_df_cols_filter])
@@ -168,9 +180,7 @@ def main_function():
 
     _download_with_progress(image_url, output_path / file_name)
 
-    with open(
-        output_path / f"{file_name_stem}.json", "w", encoding="utf-8"
-    ) as f:
+    with open(output_path / f"{file_name_stem}.json", "w", encoding="utf-8") as f:
         json.dump(selected_item.to_dict(), f, indent=4, sort_keys=False)
 
     print(f"Output path: {output_path.absolute()}")
