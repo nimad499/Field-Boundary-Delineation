@@ -136,7 +136,7 @@ def main_function():
     if fetch_collections:
         selected_collection = inquirer.select(
             message="Select a collection: ",
-            choices=(c.id for c in catalog.get_collections()),
+            choices=sorted((c.id for c in catalog.get_collections())),
             pointer="=>",
         ).execute()
     else:
