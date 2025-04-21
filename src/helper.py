@@ -4,7 +4,6 @@ import cv2
 import geopandas as gpd
 import torch
 from shapely.geometry import Polygon
-from torch.utils.data import ConcatDataset
 from torchvision.models.detection.mask_rcnn import MaskRCNN
 from torchvision.models.segmentation import DeepLabV3
 

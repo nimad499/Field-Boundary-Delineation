@@ -22,7 +22,14 @@ from helper import (
 
 
 def train_new_model(
-    model_architecture, dataset_paths, output_dir_path, num_epochs, batch_size
+    model_architecture,
+    dataset_paths,
+    output_dir_path,
+    num_epochs,
+    batch_size,
+    log_queue=None,
+    loss_callback_list=None,
+    cancel_callback=None,
 ):
     (
         model,
@@ -43,12 +50,16 @@ def train_new_model(
         weight_decay=0.0005,
     )
 
-    trainer = appropriate_trainer(selected_model, optimizer, output_dir_path, device)
-    trainer.train(
-        dataset,
-        num_epochs,
-        batch_size,
+    trainer = appropriate_trainer(
+        selected_model,
+        optimizer,
+        output_dir_path,
+        device,
+        log_queue=log_queue,
+        loss_callback_list=loss_callback_list,
+        cancel_callback=cancel_callback,
     )
+    trainer.train(dataset, num_epochs, batch_size)
 
 
 def continue_training(

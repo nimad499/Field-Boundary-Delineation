@@ -19,18 +19,20 @@ class BaseTrain(ABC):
         output_dir: Path,
         device=None,
         current_epoch=0,
+        log_queue=None,
+        loss_callback_list=None,
+        cancel_callback=None,
     ):
         self.model = model
         self.optimizer = optimizer
         self.output_dir = output_dir
-        self.device = device
-        if device is None:
-            self.device = (
-                torch.device("cuda")
-                if torch.cuda.is_available()
-                else torch.device("cpu")
-            )
+        self.device = device or (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
         self.current_epoch = current_epoch
+        self.log_queue = log_queue
+        self.loss_callback_list = loss_callback_list
+        self.cancel_callback = cancel_callback
 
     @abstractmethod
     def _dataloader(self, dataset, batch_size): ...
@@ -38,10 +40,11 @@ class BaseTrain(ABC):
     @abstractmethod
     def _train_one_epoch(self, dataloader): ...
 
-    def _log(self, epoch, loss):
-        self.writer.add_scalar("Loss/train", loss, epoch)
-
-        print(f"Epoch {epoch}: {loss}")
+    def _log(self, msg):
+        if self.log_queue:
+            self.log_queue.put(msg + "\n")
+        else:
+            print(msg)
 
     def train(self, dataset, num_epochs, batch_size):
         dataloader = self._dataloader(dataset, batch_size)
@@ -57,8 +60,18 @@ class BaseTrain(ABC):
         best_loss = float("inf")
         best_epoch = float("inf")
         for epoch in range(self.current_epoch + 1, num_epochs + self.current_epoch + 1):
+            if self.cancel_callback and self.cancel_callback():
+                self._log("Training cancelled.")
+                break
+
             loss = self._train_one_epoch(dataloader)
-            self._log(epoch, loss)
+
+            self.writer.add_scalar("Loss/train", loss, epoch)
+
+            if self.loss_callback_list is not None:
+                self.loss_callback_list.append(loss)
+
+            self._log(f"Epoch {epoch}: {loss}")
             self.current_epoch = epoch
 
             if loss < best_loss:
