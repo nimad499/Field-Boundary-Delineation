@@ -142,7 +142,7 @@ def download_image_window():
 
     def load_collections():
         try:
-            collections = [c.id for c in catalog.get_all_collections()]
+            collections = [c.id for c in catalog.get_collections()]
             collection_dropdown["values"] = collections
             if collections:
                 collection_dropdown.current(0)
