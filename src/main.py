@@ -63,12 +63,16 @@ def train_new_model(
 
 
 def continue_training(
-    model_path, dataset_paths, output_dir_path, num_epochs, batch_size
+    model_path,
+    dataset_paths,
+    output_dir_path,
+    num_epochs,
+    batch_size,
+    log_queue=None,
+    loss_callback_list=None,
+    cancel_callback=None,
 ):
-    checkpoint = torch.load(
-        model_path,
-        weights_only=False,
-    )
+    checkpoint = torch.load(model_path, weights_only=False)
 
     model = checkpoint["model"]
     optimizer = checkpoint["optimizer"]
@@ -77,8 +81,17 @@ def continue_training(
     _, appropriate_dataset, appropriate_trainer = model_class_options(model.__class__)
     dataset = ConcatDataset([appropriate_dataset(i, b) for i, b in dataset_paths])
 
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
     trainer = appropriate_trainer(
-        model, optimizer, output_dir_path, current_epoch=current_epoch
+        model,
+        optimizer,
+        output_dir_path,
+        device,
+        current_epoch=current_epoch,
+        log_queue=log_queue,
+        loss_callback_list=loss_callback_list,
+        cancel_callback=cancel_callback,
     )
     trainer.train(dataset, num_epochs, batch_size)
 
@@ -86,11 +99,7 @@ def continue_training(
 def inference(model_path, image_path, output_dir_path):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    checkpoint = torch.load(
-        model_path,
-        weights_only=False,
-    )
-
+    checkpoint = torch.load(model_path, weights_only=False)
     model: torch.nn.Module = checkpoint["model"]
     model.eval()
     model.to(device)

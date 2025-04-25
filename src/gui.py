@@ -21,22 +21,18 @@ from image_crop import crop_image
 from image_download import catalog_search, get_catalog
 from main import continue_training, inference, train_new_model
 
+# ToDo: Take care of duplication of threads
+# ToDo: Add cancel download button
+# ToDo: Delete half-downloaded image in the case of cancellation or exit
+# ToDo: Show image download progress in the GUI
+
 stop_training = False
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-def _download_image(url, output_path):
-    response = requests.get(url, stream=True, timeout=10)
-    total_size = int(response.headers.get("content-length", 0))
-    with (
-        tqdm(total=total_size, unit="iB", unit_scale=True) as progress_bar,
-        open(output_path, "wb") as file,
-    ):
-        for chunk in response.iter_content(chunk_size=8192):
-            file.write(chunk)
-            progress_bar.update(len(chunk))
-    messagebox.showinfo("Download Completed", f"Downloaded file: {output_path}")
+def _run_in_thread(function: callable):
+    threading.Thread(target=function, daemon=True).start()
 
 
 def download_image_window():
@@ -59,6 +55,7 @@ def download_image_window():
 
     def search_catalog():
         nonlocal search_results, items_df
+
         try:
             lon = float(lon_var.get())
             lat = float(lat_var.get())
@@ -115,12 +112,28 @@ def download_image_window():
         except Exception as e:
             messagebox.showerror("Error", f"Failed to fetch formats: {e}")
 
+    def download_image(url, output_path):
+        response = requests.get(url, stream=True, timeout=10)
+
+        total_size = int(response.headers.get("content-length", 0))
+
+        with (
+            tqdm(total=total_size, unit="iB", unit_scale=True) as progress_bar,
+            open(output_path, "wb") as file,
+        ):
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+                progress_bar.update(len(chunk))
+
+        messagebox.showinfo("Download Completed", f"Downloaded file: {output_path}")
+
     def start_download():
         try:
             selection = items_listbox.curselection()
             if not selection:
                 messagebox.showerror("Error", "Please select an image from the list.")
                 return
+
             index = selection[0]
             selected_item = search_results.item_collection()[index]
             selected_format = selected_format_var.get()
@@ -132,7 +145,7 @@ def download_image_window():
             file_name = Path(urlparse(image_url).path).name
             file_path = output_folder / file_name
 
-            _download_image(image_url, file_path)
+            download_image(image_url, file_path)
 
             with open(output_folder / f"{file_name}.json", "w", encoding="utf-8") as f:
                 json.dump(selected_item.to_dict(), f, indent=4)
@@ -140,7 +153,7 @@ def download_image_window():
         except Exception as e:
             messagebox.showerror("Error", f"Download failed: {e}")
 
-    def load_collections():
+    def fetch_collections():
         try:
             collections = sorted((c.id for c in catalog.get_collections()))
             collection_dropdown["values"] = collections
@@ -172,9 +185,12 @@ def download_image_window():
     resized_icon = raw_icon.resize((20, 20), Image.Resampling.LANCZOS)
     reload_icon = ImageTk.PhotoImage(resized_icon)
     reload_button = ttk.Button(
-        dropdown_frame, image=reload_icon, command=lambda: load_collections(), width=30
+        dropdown_frame,
+        image=reload_icon,
+        command=lambda: _run_in_thread(fetch_collections),
+        width=30,
     )
-    reload_button.image = reload_icon  # Keep reference to avoid garbage collection
+    reload_button.image = reload_icon
     reload_button.pack(side="right", padx=5)
 
     collection_dropdown.bind("<<ComboboxSelected>>", on_dropdown_change)
@@ -190,14 +206,18 @@ def download_image_window():
             pady=5, padx=10, fill="x"
         )
 
-    ttk.Button(new_window, text="Search Images", command=search_catalog).pack(pady=10)
+    ttk.Button(
+        new_window, text="Search Images", command=lambda: _run_in_thread(search_catalog)
+    ).pack(pady=10)
 
     items_listbox = tkinter.Listbox(new_window, height=5)
     items_listbox.pack(pady=5, padx=10, fill="both", expand=True)
 
-    ttk.Button(new_window, text="Fetch Available Formats", command=fetch_formats).pack(
-        pady=10
-    )
+    ttk.Button(
+        new_window,
+        text="Fetch Available Formats",
+        command=lambda: _run_in_thread(fetch_formats),
+    ).pack(pady=10)
 
     ttk.Label(new_window, text="Select Image Format:", font=("Arial", 12)).pack(pady=5)
     format_dropdown = ttk.Combobox(new_window, textvariable=selected_format_var)
@@ -209,7 +229,11 @@ def download_image_window():
     )
     ttk.Button(new_window, text="Browse", command=select_output_directory).pack(pady=5)
 
-    ttk.Button(new_window, text="Download Image", command=start_download).pack(pady=10)
+    ttk.Button(
+        new_window,
+        text="Download Image",
+        command=lambda: _run_in_thread(start_download),
+    ).pack(pady=10)
 
 
 def crop_image_window():
@@ -321,10 +345,6 @@ def train_new_model_window():
 
         new_window.after(100, log_writer)
 
-    def run_train_thread():
-        train_thread = threading.Thread(target=run_train_new_model, daemon=True)
-        train_thread.start()
-
     def run_train_new_model():
         if not images_path.get():
             messagebox.showerror("Error", "Please select images path.")
@@ -413,9 +433,11 @@ def train_new_model_window():
 
     btn_frame = ttk.Frame(new_window)
     btn_frame.pack(pady=10)
-    ttk.Button(btn_frame, text="Start Training", command=run_train_thread).grid(
-        row=0, column=0, padx=10
-    )
+    ttk.Button(
+        btn_frame,
+        text="Start Training",
+        command=lambda: _run_in_thread(run_train_new_model),
+    ).grid(row=0, column=0, padx=10)
     ttk.Button(btn_frame, text="Cancel", command=cancel_training).grid(
         row=0, column=1, padx=10
     )
@@ -427,9 +449,12 @@ def train_new_model_window():
 
 
 def continue_training_window():
+    global stop_training
+    stop_training = False
+
     new_window = Toplevel(root)
     new_window.title("Continue Training")
-    new_window.geometry("400x700")
+    new_window.geometry("400x1000")
 
     model_path = StringVar()
     images_path = StringVar()
@@ -437,28 +462,49 @@ def continue_training_window():
     output_path = StringVar()
     num_epochs = IntVar()
     batch_size = IntVar()
+    log_queue = queue.Queue()
+    loss_history = []
 
-    def select_model_file():
-        path = filedialog.askopenfilename(
-            filetypes=[("Model File", "*.tar"), ("All Files", "*.*")]
-        )
+    def on_close():
+        global stop_training
+        stop_training = True
+        plt.close("all")
+        new_window.destroy()
+
+    def select_file(var, filetypes):
+        path = filedialog.askopenfilename(filetypes=filetypes)
         if path:
-            model_path.set(path)
+            var.set(path)
 
-    def select_images_path():
+    def select_dir(var):
         path = filedialog.askdirectory()
         if path:
-            images_path.set(path)
+            var.set(path)
 
-    def select_boundaries_path():
-        path = filedialog.askdirectory()
-        if path:
-            boundaries_path.set(path)
+    def cancel_training():
+        global stop_training
+        stop_training = True
+        log_queue.put("[INFO] Training cancelled by user.\n")
 
-    def select_output_directory():
-        path = filedialog.askdirectory()
-        if path:
-            output_path.set(path)
+    def log_writer():
+        try:
+            while True:
+                msg = log_queue.get_nowait()
+                log_text.insert("end", msg)
+                log_text.see("end")
+        except queue.Empty:
+            pass
+        new_window.after(100, log_writer)
+
+    def update_plot():
+        if loss_history:
+            ax.clear()
+            ax.plot(loss_history, marker="o")
+            ax.set_title("Training Loss")
+            ax.set_xlabel("Epoch")
+            ax.set_ylabel("Loss")
+            canvas.draw()
+        new_window.after(1000, update_plot)
 
     def run_continue_training():
         if not model_path.get():
@@ -476,67 +522,76 @@ def continue_training_window():
         try:
             epochs = num_epochs.get()
             if epochs <= 0:
-                raise ValueError("Number of epochs must be a positive integer.")
+                raise ValueError()
         except ValueError:
-            messagebox.showerror(
-                "Error", "Invalid number of epochs. Please enter a positive integer."
-            )
+            messagebox.showerror("Error", "Invalid number of epochs.")
             return
         try:
             batch = batch_size.get()
             if batch <= 0:
-                raise ValueError("Batch size must be a positive integer.")
+                raise ValueError()
         except ValueError:
-            messagebox.showerror(
-                "Error", "Invalid batch size. Please enter a positive integer."
-            )
+            messagebox.showerror("Error", "Invalid batch size.")
             return
 
-        continue_training(
-            Path(model_path.get()),
-            [(Path(images_path.get()), Path(boundaries_path.get()))],
-            Path(output_path.get()),
-            num_epochs.get(),
-            batch_size.get(),
-        )
+        try:
+            continue_training(
+                Path(model_path.get()),
+                [(Path(images_path.get()), Path(boundaries_path.get()))],
+                Path(output_path.get()),
+                num_epochs.get(),
+                batch_size.get(),
+                log_queue=log_queue,
+                loss_callback_list=loss_history,
+                cancel_callback=lambda: stop_training,
+            )
+            log_queue.put("[INFO] Training completed.\n")
+        except Exception as e:
+            log_queue.put(f"[ERROR] {str(e)}\n")
 
-    ttk.Label(new_window, text="Model File:", font=("Arial", 12)).pack(pady=5)
-    ttk.Entry(new_window, textvariable=model_path, font=("Arial", 10)).pack(
-        pady=5, padx=10, fill="x"
-    )
-    ttk.Button(new_window, text="Browse", command=select_model_file).pack(pady=5)
+    for label, var, sel in [
+        (
+            "Model File:",
+            model_path,
+            lambda: select_file(model_path, [("Model File", "*.tar")]),
+        ),
+        ("Images Path:", images_path, lambda: select_dir(images_path)),
+        ("Boundaries Path:", boundaries_path, lambda: select_dir(boundaries_path)),
+        ("Output Path:", output_path, lambda: select_dir(output_path)),
+    ]:
+        ttk.Label(new_window, text=label).pack(pady=5)
+        ttk.Entry(new_window, textvariable=var).pack(pady=2, fill="x", padx=10)
+        ttk.Button(new_window, text="Browse", command=sel).pack(pady=2)
 
-    ttk.Label(new_window, text="Images Path:", font=("Arial", 12)).pack(pady=5)
-    ttk.Entry(new_window, textvariable=images_path, font=("Arial", 10)).pack(
-        pady=5, padx=10, fill="x"
-    )
-    ttk.Button(new_window, text="Browse", command=select_images_path).pack(pady=5)
+    ttk.Label(new_window, text="Number of Epochs:").pack(pady=5)
+    ttk.Entry(new_window, textvariable=num_epochs).pack(pady=2, fill="x", padx=10)
 
-    ttk.Label(new_window, text="Boundaries Path:", font=("Arial", 12)).pack(pady=5)
-    ttk.Entry(new_window, textvariable=boundaries_path, font=("Arial", 10)).pack(
-        pady=5, padx=10, fill="x"
-    )
-    ttk.Button(new_window, text="Browse", command=select_boundaries_path).pack(pady=5)
+    ttk.Label(new_window, text="Batch Size:").pack(pady=5)
+    ttk.Entry(new_window, textvariable=batch_size).pack(pady=2, fill="x", padx=10)
 
-    ttk.Label(new_window, text="Output Path:", font=("Arial", 12)).pack(pady=5)
-    ttk.Entry(new_window, textvariable=output_path, font=("Arial", 10)).pack(
-        pady=5, padx=10, fill="x"
-    )
-    ttk.Button(new_window, text="Browse", command=select_output_directory).pack(pady=5)
+    ttk.Label(new_window, text="Training Logs:").pack(pady=5)
+    log_text = tk.Text(new_window, height=5)
+    log_text.pack(padx=10, pady=5, fill="both", expand=True)
 
-    ttk.Label(new_window, text="Number of Epochs:", font=("Arial", 12)).pack(pady=5)
-    ttk.Entry(new_window, textvariable=num_epochs, font=("Arial", 10)).pack(
-        pady=5, padx=10, fill="x"
-    )
+    fig, ax = plt.subplots(figsize=(6, 3))
+    canvas = FigureCanvasTkAgg(fig, master=new_window)
+    canvas.get_tk_widget().pack(pady=10, fill="both", expand=True)
 
-    ttk.Label(new_window, text="Batch Size:", font=("Arial", 12)).pack(pady=5)
-    ttk.Entry(new_window, textvariable=batch_size, font=("Arial", 10)).pack(
-        pady=5, padx=10, fill="x"
-    )
-
+    btn_frame = ttk.Frame(new_window)
+    btn_frame.pack(pady=10)
     ttk.Button(
-        new_window, text="Continue Training", command=run_continue_training
-    ).pack(pady=20)
+        btn_frame,
+        text="Continue Training",
+        command=lambda: _run_in_thread(run_continue_training),
+    ).grid(row=0, column=0, padx=10)
+    ttk.Button(btn_frame, text="Cancel", command=cancel_training).grid(
+        row=0, column=1, padx=10
+    )
+
+    log_writer()
+    update_plot()
+
+    new_window.protocol("WM_DELETE_WINDOW", on_close)
 
 
 def inference_window():
@@ -548,27 +603,15 @@ def inference_window():
     image_path = StringVar()
     output_path = StringVar()
 
-    def select_model_file():
-        path = filedialog.askopenfilename(
-            filetypes=[("Model File", "*.tar"), ("All Files", "*.*")]
-        )
+    def select_file(var, filetypes):
+        path = filedialog.askopenfilename(filetypes=filetypes)
         if path:
-            model_path.set(path)
+            var.set(path)
 
-    def select_image_file():
-        path = filedialog.askopenfilename(
-            filetypes=[
-                ("Image File", "*.tif"),
-                ("All Files", "*.*"),
-            ]
-        )
-        if path:
-            image_path.set(path)
-
-    def select_output_directory():
+    def select_dir(var):
         path = filedialog.askdirectory()
         if path:
-            output_path.set(path)
+            var.set(path)
 
     def run_inference():
         if not model_path.get():
@@ -581,29 +624,46 @@ def inference_window():
             messagebox.showerror("Error", "Please select an output directory.")
             return
 
-        inference(
-            Path(model_path.get()), Path(image_path.get()), Path(output_path.get())
+        run_btn.config(state="disabled")
+
+        try:
+            inference(
+                Path(model_path.get()),
+                Path(image_path.get()),
+                Path(output_path.get()),
+            )
+        except Exception as e:
+            messagebox.showerror("Inference Error", str(e))
+        finally:
+            run_btn.config(state="normal")
+
+    for label, var, sel in [
+        (
+            "Model File:",
+            model_path,
+            lambda: select_file(model_path, [("Model File", "*.tar")]),
+        ),
+        (
+            "Image File:",
+            image_path,
+            lambda: select_file(
+                image_path, [("Image File", "*.tif"), ("All Files", "*.*")]
+            ),
+        ),
+        ("Output Path:", output_path, lambda: select_dir(output_path)),
+    ]:
+        ttk.Label(new_window, text=label, font=("Arial", 12)).pack(pady=5)
+        ttk.Entry(new_window, textvariable=var, font=("Arial", 10)).pack(
+            pady=2, padx=10, fill="x"
         )
+        ttk.Button(new_window, text="Browse", command=sel).pack(pady=2)
 
-    ttk.Label(new_window, text="Model File:", font=("Arial", 12)).pack(pady=5)
-    ttk.Entry(new_window, textvariable=model_path, font=("Arial", 10)).pack(
-        pady=5, padx=10, fill="x"
+    run_btn = ttk.Button(
+        new_window, text="Run Inference", command=lambda: _run_in_thread(run_inference)
     )
-    ttk.Button(new_window, text="Browse", command=select_model_file).pack(pady=5)
+    run_btn.pack(pady=20)
 
-    ttk.Label(new_window, text="Image File:", font=("Arial", 12)).pack(pady=5)
-    ttk.Entry(new_window, textvariable=image_path, font=("Arial", 10)).pack(
-        pady=5, padx=10, fill="x"
-    )
-    ttk.Button(new_window, text="Browse", command=select_image_file).pack(pady=5)
-
-    ttk.Label(new_window, text="Output Path:", font=("Arial", 12)).pack(pady=5)
-    ttk.Entry(new_window, textvariable=output_path, font=("Arial", 10)).pack(
-        pady=5, padx=10, fill="x"
-    )
-    ttk.Button(new_window, text="Browse", command=select_output_directory).pack(pady=5)
-
-    ttk.Button(new_window, text="Run Inference", command=run_inference).pack(pady=20)
+    new_window.protocol("WM_DELETE_WINDOW", new_window.destroy)
 
 
 def open_new_window(title):
