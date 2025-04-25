@@ -19,24 +19,19 @@ from dataset import (
 from model import deeplabv3_model, mask_rcnn_model
 from train import InstanceSegmentationTrain, SemanticSegmentationTrain
 
-models = {"Mask-RCNN": MaskRCNN, "DeepLab": DeepLabV3}
-
-
-def model_class_options(target_class):
-    if issubclass(target_class, MaskRCNN):
-        return (
-            mask_rcnn_model,
-            InstanceSegmentationLazyDataset,
-            InstanceSegmentationTrain,
-        )
-    elif issubclass(target_class, DeepLabV3):
-        return (
-            deeplabv3_model,
-            SemanticSegmentationLazyDataset,
-            SemanticSegmentationTrain,
-        )
-    else:
-        raise ValueError
+model_name_class = {"Mask-RCNN": MaskRCNN, "DeepLab": DeepLabV3}
+model_class_options = {
+    MaskRCNN: (
+        mask_rcnn_model,
+        InstanceSegmentationLazyDataset,
+        InstanceSegmentationTrain,
+    ),
+    DeepLabV3: (
+        deeplabv3_model,
+        SemanticSegmentationLazyDataset,
+        SemanticSegmentationTrain,
+    ),
+}
 
 
 def get_dataset():
@@ -118,7 +113,7 @@ def train_new_model(
         model,
         appropriate_dataset,
         appropriate_trainer,
-    ) = model_class_options(models[model_architecture])
+    ) = model_class_options[model_name_class[model_architecture]]
     selected_model = model()
 
     dataset = ConcatDataset([appropriate_dataset(i, b) for i, b in dataset_paths])

@@ -9,7 +9,7 @@ from helper import (
     continue_training,
     get_dataset,
     inference,
-    models,
+    model_name_class,
     train_new_model,
 )
 
@@ -43,7 +43,7 @@ if __name__ == "__main__":
         case _Mode.TRAIN_NEW_MODEL:
             model_architecture = inquirer.select(
                 message="Select a model: ",
-                choices=models.keys(),
+                choices=model_name_class.keys(),
                 pointer="=>",
             ).execute()
 

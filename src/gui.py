@@ -20,7 +20,7 @@ from tqdm import tqdm
 from helper import (
     continue_training,
     inference,
-    models,
+    model_name_class,
     train_new_model,
 )
 from image_crop import crop_image
@@ -436,7 +436,7 @@ def train_new_model_window():
     ttk.Entry(new_window, textvariable=batch_size).pack(pady=2, fill="x", padx=10)
 
     ttk.Label(new_window, text="Model Architecture:").pack(pady=5)
-    for option in models.keys():
+    for option in model_name_class.keys():
         ttk.Radiobutton(
             new_window, text=option, variable=model_architecture, value=option
         ).pack(anchor="w", padx=20)
