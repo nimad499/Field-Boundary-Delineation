@@ -9,22 +9,8 @@ from pathlib import Path
 from tkinter import IntVar, StringVar, Toplevel, filedialog, messagebox
 from urllib.parse import urlparse
 
-import geopandas as gpd
-import matplotlib.pyplot as plt
-import requests
 import ttkbootstrap as ttk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from PIL import Image, ImageTk
 from tqdm import tqdm
-
-from helper import (
-    continue_training,
-    inference,
-    model_name_class,
-    train_new_model,
-)
-from image_crop import crop_image
-from image_download import catalog_search, get_catalog
 
 # ToDo: Add cancel download button
 # ToDo: Delete half-downloaded image in the case of cancellation or exit
@@ -51,6 +37,10 @@ _run_in_thread.active_thread_function = {}
 
 
 def download_image_window():
+    from PIL import Image, ImageTk
+
+    from image_download import get_catalog
+
     new_window = Toplevel(root)
     new_window.title("Download Image")
     new_window.geometry("500x900")
@@ -69,6 +59,10 @@ def download_image_window():
     items_df = None
 
     def search_catalog():
+        import geopandas as gpd
+
+        from image_download import catalog_search
+
         nonlocal search_results, items_df
 
         try:
@@ -128,6 +122,8 @@ def download_image_window():
             messagebox.showerror("Error", f"Failed to fetch formats: {e}")
 
     def download_image(url, output_path):
+        import requests
+
         response = requests.get(url, stream=True, timeout=10)
 
         total_size = int(response.headers.get("content-length", 0))
@@ -282,6 +278,8 @@ def crop_image_window():
             output_path.set(path)
 
     def run_crop_image():
+        from image_crop import crop_image
+
         if not image_path.get():
             messagebox.showerror("Error", "Please select an image file.")
             return
@@ -330,6 +328,14 @@ def crop_image_window():
 
 
 def train_new_model_window():
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+    from helper import (
+        model_name_class,
+        train_new_model,
+    )
+
     global stop_training
     stop_training = False
 
@@ -481,6 +487,13 @@ def train_new_model_window():
 
 
 def continue_training_window():
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+    from helper import (
+        continue_training,
+    )
+
     global stop_training
     stop_training = False
 
@@ -649,6 +662,8 @@ def inference_window():
             var.set(path)
 
     def run_inference():
+        from helper import inference
+
         if not model_path.get():
             messagebox.showerror("Error", "Please select a model file.")
             return

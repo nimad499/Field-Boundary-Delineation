@@ -3,15 +3,6 @@ from pathlib import Path
 
 from InquirerPy import inquirer
 
-import image_crop
-import image_download
-from helper import (
-    continue_training,
-    get_dataset,
-    inference,
-    model_name_class,
-    train_new_model,
-)
 
 if __name__ == "__main__":
 
@@ -31,9 +22,13 @@ if __name__ == "__main__":
 
     match mode:
         case _Mode.DOWNLOAD_IMAGE:
+            import image_download
+
             image_download.main_function()
 
         case _Mode.CROP_IMAGE:
+            import image_crop
+
             input_path = Path(input("Enter input image path: "))
             output_dir = Path(input("Enter output directory: "))
             square_size = int(input("Enter square size: "))
@@ -41,6 +36,12 @@ if __name__ == "__main__":
             image_crop.crop_image(input_path, output_dir, square_size)
 
         case _Mode.TRAIN_NEW_MODEL:
+            from helper import (
+                get_dataset,
+                model_name_class,
+                train_new_model,
+            )
+
             model_architecture = inquirer.select(
                 message="Select a model: ",
                 choices=model_name_class.keys(),
@@ -66,6 +67,11 @@ if __name__ == "__main__":
             )
 
         case _Mode.CONTINUE_TRAINING:
+            from helper import (
+                continue_training,
+                get_dataset,
+            )
+
             checkpoint_path = Path(input("Enter the checkpoint output path: "))
             model_path = checkpoint_path / "model" / "best_model.tar"
 
@@ -92,6 +98,8 @@ if __name__ == "__main__":
             )
 
         case _Mode.INFERENCE:
+            from helper import inference
+
             checkpoint_path = Path(input("Enter the checkpoint output path: "))
             model_path = checkpoint_path / "model" / "best_model.tar"
 

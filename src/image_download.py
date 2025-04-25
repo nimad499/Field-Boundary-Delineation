@@ -5,8 +5,6 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
-import geopandas as gpd
-import planetary_computer as pc
 import regex as re
 import requests
 from InquirerPy import inquirer
@@ -85,9 +83,11 @@ def _download_with_progress(url, output_path):
 
 
 def get_catalog(url: str = "https://planetarycomputer.microsoft.com/api/stac/v1"):
+    from planetary_computer import sign_inplace
+
     catalog = Client.open(
         url,
-        modifier=pc.sign_inplace,
+        modifier=sign_inplace,
     )
 
     return catalog
@@ -124,6 +124,8 @@ def catalog_search(
 
 
 def main_function():
+    from geopandas import GeoDataFrame
+
     catalog = get_catalog()
 
     fetch_collections = inquirer.select(
@@ -163,7 +165,7 @@ def main_function():
     )
 
     items = search_result.item_collection()
-    items_df = gpd.GeoDataFrame.from_features(items.to_dict(), crs="epsg:4326")
+    items_df = GeoDataFrame.from_features(items.to_dict(), crs="epsg:4326")
     _items_df_cols_filter = ["datetime", "eo:cloud_cover"]
     print(items_df[_items_df_cols_filter])
     # ToDo: Check entered number
