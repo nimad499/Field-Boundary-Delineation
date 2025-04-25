@@ -17,10 +17,14 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image, ImageTk
 from tqdm import tqdm
 
-from helper import models
+from helper import (
+    continue_training,
+    inference,
+    models,
+    train_new_model,
+)
 from image_crop import crop_image
 from image_download import catalog_search, get_catalog
-from main import continue_training, inference, train_new_model
 
 # ToDo: Take care of duplication of threads
 # ToDo: Add cancel download button
