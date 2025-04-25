@@ -26,7 +26,6 @@ from helper import (
 from image_crop import crop_image
 from image_download import catalog_search, get_catalog
 
-# ToDo: Take care of duplication of threads
 # ToDo: Add cancel download button
 # ToDo: Delete half-downloaded image in the case of cancellation or exit
 # ToDo: Show image download progress in the GUI
@@ -37,7 +36,18 @@ base_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def _run_in_thread(function: callable):
-    threading.Thread(target=function, daemon=True).start()
+    if (
+        function in _run_in_thread.active_thread_function.keys()
+        and _run_in_thread.active_thread_function[function].is_alive()
+    ):
+        return
+
+    thread = threading.Thread(target=function, daemon=True)
+    thread.start()
+    _run_in_thread.active_thread_function[function] = thread
+
+
+_run_in_thread.active_thread_function = {}
 
 
 def download_image_window():
