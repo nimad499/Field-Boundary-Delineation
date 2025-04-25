@@ -145,9 +145,18 @@ def main_function():
     lon = _get_valid_longitude()
     lat = _get_valid_latitude()
 
-    start_date = _get_valid_date("Enter start date in (YYYY-MM-DD) format: ")
-    # ToDo: Check if end_date is older than start_date
-    end_date = _get_valid_date("Enter end date in (YYYY-MM-DD) format: ")
+    while True:
+        start_date = _get_valid_date("Enter start date in (YYYY-MM-DD) format: ")
+        end_date = _get_valid_date("Enter end date in (YYYY-MM-DD) format: ")
+
+        if (
+            datetime.strptime(start_date, "%Y-%m-%d").date()
+            > datetime.strptime(end_date, "%Y-%m-%d").date()
+        ):
+            print("Start date must be before End date.")
+            continue
+
+        break
 
     search_result = catalog_search(
         catalog, start_date, end_date, lon, lat, selected_collection
