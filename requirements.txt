@@ -50,6 +50,7 @@ nvidia-cusparse-cu12==12.1.0.106
 nvidia-nccl-cu12==2.20.5
 nvidia-nvjitlink-cu12==12.6.77
 nvidia-nvtx-cu12==12.1.105
+objprint==0.3.0
 opencv-python==4.10.0.84
 packaging==24.1
 pandas==2.2.3
@@ -98,6 +99,7 @@ tornado==6.4.1
 tqdm==4.66.5
 traitlets==5.14.3
 triton==3.0.0
+ttkbootstrap==1.12.0
 typing_extensions==4.12.2
 tzdata==2024.1
 urllib3==2.2.3

@@ -6,12 +6,13 @@ import tkinter
 import tkinter as tk
 from datetime import datetime
 from pathlib import Path
-from tkinter import IntVar, StringVar, Tk, Toplevel, filedialog, messagebox, ttk
+from tkinter import IntVar, StringVar, Toplevel, filedialog, messagebox
 from urllib.parse import urlparse
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import requests
+import ttkbootstrap as ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image, ImageTk
 from tqdm import tqdm
@@ -198,13 +199,21 @@ def download_image_window():
     for label, var in [
         ("Longitude (-180 to 180):", lon_var),
         ("Latitude (-90 to 90):", lat_var),
-        ("Start Date (YYYY-MM-DD):", start_date_var),
-        ("End Date (YYYY-MM-DD):", end_date_var),
     ]:
         ttk.Label(new_window, text=label, font=("Arial", 12)).pack(pady=5)
         ttk.Entry(new_window, textvariable=var, font=("Arial", 10)).pack(
             pady=5, padx=10, fill="x"
         )
+
+    for label, var in [
+        ("Start Date (YYYY-MM-DD):", start_date_var),
+        ("End Date (YYYY-MM-DD):", end_date_var),
+    ]:
+        ttk.Label(new_window, text=label, font=("Arial", 12)).pack(pady=5)
+
+        date_entry = ttk.DateEntry(new_window, dateformat="%Y-%m-%d")
+        date_entry.entry.configure(textvariable=var)
+        date_entry.pack(pady=5, padx=10, fill="x")
 
     ttk.Button(
         new_window, text="Search Images", command=lambda: _run_in_thread(search_catalog)
@@ -233,13 +242,14 @@ def download_image_window():
         new_window,
         text="Download Image",
         command=lambda: _run_in_thread(start_download),
+        bootstyle="success",
     ).pack(pady=10)
 
 
 def crop_image_window():
     new_window = Toplevel(root)
     new_window.title("Crop Image")
-    new_window.geometry("400x400")
+    new_window.geometry("400x410")
 
     image_path = StringVar()
     output_path = StringVar()
@@ -297,7 +307,9 @@ def crop_image_window():
         pady=5, padx=10, fill="x"
     )
 
-    ttk.Button(new_window, text="Crop", command=run_crop_image).pack(pady=20)
+    ttk.Button(
+        new_window, text="Crop", command=run_crop_image, bootstyle="success"
+    ).pack(pady=20)
 
 
 def train_new_model_window():
@@ -396,7 +408,9 @@ def train_new_model_window():
     ]:
         ttk.Label(new_window, text=label).pack(pady=5)
         ttk.Entry(new_window, textvariable=var).pack(pady=2, fill="x", padx=10)
-        ttk.Button(new_window, text="Browse", command=command).pack(pady=2)
+        ttk.Button(new_window, text="Browse", padding=(2, 1), command=command).pack(
+            pady=3
+        )
 
     ttk.Label(new_window, text="Number of Epochs:").pack(pady=5)
     ttk.Entry(new_window, textvariable=num_epochs).pack(pady=2, fill="x", padx=10)
@@ -412,7 +426,7 @@ def train_new_model_window():
 
     ttk.Label(new_window, text="Training Logs:").pack(pady=5)
     log_text = tk.Text(new_window, height=5)
-    log_text.pack(padx=10, pady=5, fill="both", expand=True)
+    log_text.pack(padx=10, pady=2, fill="both", expand=True)
 
     fig, ax = plt.subplots(figsize=(6, 3))
     loss_history = []
@@ -429,18 +443,19 @@ def train_new_model_window():
         new_window.after(1000, update_plot)
 
     canvas = FigureCanvasTkAgg(fig, master=new_window)
-    canvas.get_tk_widget().pack(pady=10, fill="both", expand=True)
+    canvas.get_tk_widget().pack(pady=5, fill="both", expand=True)
 
     btn_frame = ttk.Frame(new_window)
-    btn_frame.pack(pady=10)
+    btn_frame.pack(pady=5)
     ttk.Button(
         btn_frame,
         text="Start Training",
         command=lambda: _run_in_thread(run_train_new_model),
+        bootstyle="success",
     ).grid(row=0, column=0, padx=10)
-    ttk.Button(btn_frame, text="Cancel", command=cancel_training).grid(
-        row=0, column=1, padx=10
-    )
+    ttk.Button(
+        btn_frame, text="Cancel", command=cancel_training, bootstyle="danger"
+    ).grid(row=0, column=1, padx=10)
 
     log_writer()
     update_plot()
@@ -549,7 +564,7 @@ def continue_training_window():
         except Exception as e:
             log_queue.put(f"[ERROR] {str(e)}\n")
 
-    for label, var, sel in [
+    for label, var, command in [
         (
             "Model File:",
             model_path,
@@ -561,7 +576,9 @@ def continue_training_window():
     ]:
         ttk.Label(new_window, text=label).pack(pady=5)
         ttk.Entry(new_window, textvariable=var).pack(pady=2, fill="x", padx=10)
-        ttk.Button(new_window, text="Browse", command=sel).pack(pady=2)
+        ttk.Button(new_window, text="Browse", padding=(2, 1), command=command).pack(
+            pady=3
+        )
 
     ttk.Label(new_window, text="Number of Epochs:").pack(pady=5)
     ttk.Entry(new_window, textvariable=num_epochs).pack(pady=2, fill="x", padx=10)
@@ -583,10 +600,11 @@ def continue_training_window():
         btn_frame,
         text="Continue Training",
         command=lambda: _run_in_thread(run_continue_training),
+        bootstyle="success",
     ).grid(row=0, column=0, padx=10)
-    ttk.Button(btn_frame, text="Cancel", command=cancel_training).grid(
-        row=0, column=1, padx=10
-    )
+    ttk.Button(
+        btn_frame, text="Cancel", command=cancel_training, bootstyle="danger"
+    ).grid(row=0, column=1, padx=10)
 
     log_writer()
     update_plot()
@@ -597,7 +615,7 @@ def continue_training_window():
 def inference_window():
     new_window = Toplevel(root)
     new_window.title("Inference")
-    new_window.geometry("400x500")
+    new_window.geometry("400x420")
 
     model_path = StringVar()
     image_path = StringVar()
@@ -637,7 +655,7 @@ def inference_window():
         finally:
             run_btn.config(state="normal")
 
-    for label, var, sel in [
+    for label, var, command in [
         (
             "Model File:",
             model_path,
@@ -656,10 +674,13 @@ def inference_window():
         ttk.Entry(new_window, textvariable=var, font=("Arial", 10)).pack(
             pady=2, padx=10, fill="x"
         )
-        ttk.Button(new_window, text="Browse", command=sel).pack(pady=2)
+        ttk.Button(new_window, text="Browse", command=command).pack(pady=2)
 
     run_btn = ttk.Button(
-        new_window, text="Run Inference", command=lambda: _run_in_thread(run_inference)
+        new_window,
+        text="Run Inference",
+        command=lambda: _run_in_thread(run_inference),
+        bootstyle="success",
     )
     run_btn.pack(pady=20)
 
@@ -680,9 +701,9 @@ def quit_application():
 
 
 if __name__ == "__main__":
-    root = Tk()
+    root = ttk.Window(themename="cosmo")
     root.title("Field Boundary Delineation")
-    root.geometry("400x380")
+    root.geometry("400x360")
 
     style = ttk.Style()
     style.configure("TButton", font=("Arial", 12), padding=10)
