@@ -322,7 +322,10 @@ def crop_image_window():
     )
 
     ttk.Button(
-        new_window, text="Crop", command=run_crop_image, bootstyle="success"
+        new_window,
+        text="Crop",
+        command=lambda: _run_in_thread(run_crop_image),
+        bootstyle="success",
     ).pack(pady=20)
 
 
