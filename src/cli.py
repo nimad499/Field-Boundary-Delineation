@@ -36,11 +36,8 @@ if __name__ == "__main__":
             image_crop.crop_image(input_path, output_dir, square_size)
 
         case _Mode.TRAIN_NEW_MODEL:
-            from helper import (
-                get_dataset,
-                model_name_class,
-                train_new_model,
-            )
+            from helper.dataset_utils import get_dataset
+            from helper.training import model_name_class, train_new_model
 
             model_architecture = inquirer.select(
                 message="Select a model: ",
@@ -67,10 +64,8 @@ if __name__ == "__main__":
             )
 
         case _Mode.CONTINUE_TRAINING:
-            from helper import (
-                continue_training,
-                get_dataset,
-            )
+            from helper.dataset_utils import get_dataset
+            from helper.training import continue_training
 
             checkpoint_path = Path(input("Enter the checkpoint output path: "))
             model_path = checkpoint_path / "model" / "best_model.tar"
@@ -98,7 +93,7 @@ if __name__ == "__main__":
             )
 
         case _Mode.INFERENCE:
-            from helper import inference
+            from helper.model_utils import inference
 
             checkpoint_path = Path(input("Enter the checkpoint output path: "))
             model_path = checkpoint_path / "model" / "best_model.tar"

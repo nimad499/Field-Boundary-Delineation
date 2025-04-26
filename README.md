@@ -23,13 +23,13 @@ def deeplabv3_model():
     return model
 ```
 
-Next, add the model’s name and class to the `model_name_class` dictionary in `src/helper.py`:
+Next, add the model’s name and class to the `model_name_class` dictionary in `src/helper/training.py`:
 
 ```py
 model_name_class = {"DeepLab": DeepLabV3}
 ```
 
-Finally, add the model class, along with its associated model function from `src/model.py`, and its training and dataset classes to the `model_class_options` dictionary in `src/helper.py`:
+Finally, add the model class, along with its associated model function from `src/model.py`, and its training and dataset classes to the `model_class_options` dictionary in `src/helper/training.py`:
 
 ```py
 model_class_options = {

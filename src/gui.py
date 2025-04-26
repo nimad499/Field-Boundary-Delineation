@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 stop_training = False
 
-base_dir = os.path.dirname(os.path.abspath(__file__))
+_base_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def _run_in_thread(function: callable):
@@ -193,7 +193,7 @@ def download_image_window():
     )
     collection_dropdown.pack(side="left", fill="x", expand=True)
 
-    raw_icon = Image.open(os.path.join(base_dir, "../icon/reload_icon.png"))
+    raw_icon = Image.open(os.path.join(_base_dir, "../icon/reload_icon.png"))
     resized_icon = raw_icon.resize((20, 20), Image.Resampling.LANCZOS)
     reload_icon = ImageTk.PhotoImage(resized_icon)
     reload_button = ttk.Button(
@@ -332,10 +332,7 @@ def train_new_model_window():
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-    from helper import (
-        model_name_class,
-        train_new_model,
-    )
+    from helper.training import model_name_class, train_new_model
 
     global stop_training
     stop_training = False
@@ -491,9 +488,7 @@ def continue_training_window():
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-    from helper import (
-        continue_training,
-    )
+    from helper.training import continue_training
 
     global stop_training
     stop_training = False
@@ -663,7 +658,7 @@ def inference_window():
             var.set(path)
 
     def run_inference():
-        from helper import inference
+        from helper.model_utils import inference
 
         if not model_path.get():
             messagebox.showerror("Error", "Please select a model file.")
@@ -718,15 +713,6 @@ def inference_window():
     run_btn.pack(pady=20)
 
     new_window.protocol("WM_DELETE_WINDOW", new_window.destroy)
-
-
-def open_new_window(title):
-    new_window = Toplevel(root)
-    new_window.title(title)
-    new_window.geometry("400x200")
-    ttk.Label(
-        new_window, text=f"Welcome to the {title} window!", font=("Arial", 14)
-    ).pack(pady=20)
 
 
 def quit_application():
