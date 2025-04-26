@@ -3,3 +3,5 @@ out
 .env
 ToDo.txt
 __pycache__/
+program.prof
+import.log
