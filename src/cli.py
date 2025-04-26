@@ -3,6 +3,7 @@ from pathlib import Path
 
 from InquirerPy import inquirer
 
+from helper.preload import preload_modules
 
 if __name__ == "__main__":
 
@@ -19,6 +20,8 @@ if __name__ == "__main__":
         pointer="=>",
     ).execute()
     mode = _Mode(mode)
+
+    preload_modules()
 
     match mode:
         case _Mode.DOWNLOAD_IMAGE:

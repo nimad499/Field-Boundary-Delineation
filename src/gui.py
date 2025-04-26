@@ -12,6 +12,8 @@ from urllib.parse import urlparse
 import ttkbootstrap as ttk
 from tqdm import tqdm
 
+from helper.preload import preload_modules
+
 # ToDo: Add cancel download button
 # ToDo: Delete half-downloaded image in the case of cancellation or exit
 # ToDo: Show image download progress in the GUI
@@ -744,5 +746,7 @@ if __name__ == "__main__":
     ).pack(pady=5, fill="x")
     ttk.Button(frm, text="Inference", command=inference_window).pack(pady=5, fill="x")
     ttk.Button(frm, text="Quit", command=quit_application).pack(pady=5, fill="x")
+
+    preload_modules()
 
     root.mainloop()
