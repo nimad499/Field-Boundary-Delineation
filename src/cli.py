@@ -3,6 +3,7 @@ from pathlib import Path
 
 from InquirerPy import inquirer
 
+from helper.preload import preload_modules
 
 if __name__ == "__main__":
 
@@ -12,6 +13,8 @@ if __name__ == "__main__":
         TRAIN_NEW_MODEL = "Train new model"
         CONTINUE_TRAINING = "Continue training"
         INFERENCE = "Inference"
+
+    preload_modules()
 
     mode = inquirer.select(
         message="Select a mode: ",
