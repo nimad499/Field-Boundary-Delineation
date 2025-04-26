@@ -15,6 +15,7 @@ from tqdm import tqdm
 # ToDo: Add cancel download button
 # ToDo: Delete half-downloaded image in the case of cancellation or exit
 # ToDo: Show image download progress in the GUI
+# ToDo: Reset loss history before start training
 
 stop_training = False
 
