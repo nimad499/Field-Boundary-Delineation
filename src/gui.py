@@ -17,7 +17,6 @@ from helper.preload import preload_modules
 # ToDo: Add cancel download button
 # ToDo: Delete half-downloaded image in the case of cancellation or exit
 # ToDo: Show image download progress in the GUI
-# ToDo: Reset loss history before start training
 
 stop_training = False
 
@@ -48,8 +47,6 @@ def download_image_window():
     new_window.title("Download Image")
     new_window.geometry("500x900")
 
-    catalog = get_catalog()
-
     collection_var = StringVar()
     lon_var = StringVar()
     lat_var = StringVar()
@@ -79,7 +76,12 @@ def download_image_window():
                 return
 
             search_results = catalog_search(
-                catalog, str(start_date), str(end_date), lon, lat, collection_var.get()
+                get_catalog(),
+                str(start_date),
+                str(end_date),
+                lon,
+                lat,
+                collection_var.get(),
             )
             items = search_results.item_collection()
             items_df = gpd.GeoDataFrame.from_features(items.to_dict(), crs="epsg:4326")
@@ -169,7 +171,7 @@ def download_image_window():
 
     def fetch_collections():
         try:
-            collections = sorted((c.id for c in catalog.get_collections()))
+            collections = sorted((c.id for c in get_catalog().get_collections()))
             collection_dropdown["values"] = collections
             if collections:
                 collection_dropdown.current(0)
@@ -409,6 +411,8 @@ def train_new_model_window():
             )
             return
 
+        loss_history.clear()
+
         try:
             train_new_model(
                 model_architecture.get(),
@@ -576,6 +580,8 @@ def continue_training_window():
         except ValueError:
             messagebox.showerror("Error", "Invalid batch size.")
             return
+
+        loss_history.clear()
 
         try:
             continue_training(
