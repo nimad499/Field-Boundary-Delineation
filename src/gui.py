@@ -413,6 +413,8 @@ def train_new_model_window():
 
         loss_history.clear()
 
+        log_queue.put("[INFO] Training started.\n")
+
         try:
             train_new_model(
                 model_architecture.get(),
@@ -424,6 +426,7 @@ def train_new_model_window():
                 loss_history,
                 lambda: stop_training,
             )
+
             log_queue.put("[INFO] Training completed.\n")
         except Exception as e:
             log_queue.put(f"[ERROR] {str(e)}\n")
@@ -583,6 +586,8 @@ def continue_training_window():
 
         loss_history.clear()
 
+        log_queue.put("[INFO] Training started.\n")
+
         try:
             continue_training(
                 Path(model_path.get()),
@@ -594,6 +599,7 @@ def continue_training_window():
                 loss_callback_list=loss_history,
                 cancel_callback=lambda: stop_training,
             )
+
             log_queue.put("[INFO] Training completed.\n")
         except Exception as e:
             log_queue.put(f"[ERROR] {str(e)}\n")
