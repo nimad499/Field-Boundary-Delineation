@@ -2,7 +2,6 @@ import json
 import os
 import queue
 import threading
-import tkinter
 import tkinter as tk
 from datetime import datetime
 from pathlib import Path
@@ -10,13 +9,9 @@ from tkinter import IntVar, StringVar, Toplevel, filedialog, messagebox
 from urllib.parse import urlparse
 
 import ttkbootstrap as ttk
-from tqdm import tqdm
 
 from helper.preload import preload_modules
 
-# ToDo: Add cancel download button
-# ToDo: Delete half-downloaded image in the case of cancellation or exit
-# ToDo: Show image download progress in the GUI
 
 stop_training = False
 
@@ -45,7 +40,7 @@ def download_image_window():
 
     new_window = Toplevel(root)
     new_window.title("Download Image")
-    new_window.geometry("500x900")
+    new_window.geometry("500x850")
 
     collection_var = StringVar()
     lon_var = StringVar()
@@ -57,6 +52,7 @@ def download_image_window():
 
     search_results = []
     items_df = None
+    cancel_download_event = threading.Event()
 
     def search_catalog():
         import geopandas as gpd
@@ -86,8 +82,6 @@ def download_image_window():
             items = search_results.item_collection()
             items_df = gpd.GeoDataFrame.from_features(items.to_dict(), crs="epsg:4326")
 
-            items_listbox.delete(0, "end")
-
             if items_df.empty:
                 messagebox.showinfo(
                     "No Results",
@@ -95,11 +89,15 @@ def download_image_window():
                 )
                 return
 
-            for i, row in items_df.iterrows():
-                items_listbox.insert(
-                    "end",
-                    f"{i}: {row['datetime']} | Cloud Cover: {row.get('eo:cloud_cover', 'N/A')}",
+            items_combobox["values"] = list(
+                map(
+                    lambda row: f"{row[1]['datetime']} | Cloud Cover: {row[1].get('eo:cloud_cover', 'N/A')}",
+                    items_df.iterrows(),
                 )
+            )
+            items_combobox.current(0)
+
+            fetch_formats()
 
         except ValueError:
             messagebox.showerror(
@@ -112,19 +110,14 @@ def download_image_window():
             output_path_var.set(path)
 
     def fetch_formats():
-        try:
-            selection = items_listbox.curselection()
-            if not selection:
-                messagebox.showerror("Error", "Please select an image from the list.")
-                return
-            index = selection[0]
-            selected_item = search_results.item_collection()[index]
-            formats_list = list(selected_item.assets.keys())
+        index = items_combobox.current()
+        selected_item = search_results.item_collection()[index]
+        formats_list = list(selected_item.assets.keys())
 
-            format_dropdown["values"] = formats_list
-            format_dropdown.current(0)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to fetch formats: {e}")
+        format_dropdown["values"] = formats_list
+        format_dropdown.current(0)
+
+    class CancelledException(Exception): ...
 
     def download_image(url, output_path):
         import requests
@@ -133,39 +126,49 @@ def download_image_window():
 
         total_size = int(response.headers.get("content-length", 0))
 
-        with (
-            tqdm(total=total_size, unit="iB", unit_scale=True) as progress_bar,
-            open(output_path, "wb") as file,
-        ):
-            for chunk in response.iter_content(chunk_size=8192):
-                file.write(chunk)
-                progress_bar.update(len(chunk))
+        progress_bar.config(maximum=total_size, value=0)
+        progress_text.configure(text=f"0 / {round(total_size / 1048576, 1)} MiB")
 
-        messagebox.showinfo("Download Completed", f"Downloaded file: {output_path}")
+        cancel_download_event.clear()
+
+        with open(output_path, "wb") as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                if cancel_download_event.is_set():
+                    raise CancelledException("Download cancelled By User")
+
+                file.write(chunk)
+
+                progress_bar.step(len(chunk))
+                progress_text.configure(
+                    text=f"{round(progress_bar['value'] / 1048576, 1)} / {round(total_size / 1048576, 1)} MiB"
+                )
 
     def start_download():
+        progress_text.configure(text="Starting Download...")
+
+        index = items_combobox.current()
+        selected_item = search_results.item_collection()[index]
+        selected_format = selected_format_var.get()
+
+        image_url = selected_item.assets[selected_format].href
+        output_folder = Path(output_path_var.get())
+        output_folder.mkdir(parents=True, exist_ok=True)
+
+        file_name = Path(urlparse(image_url).path).name
+        file_path = output_folder / file_name
+
         try:
-            selection = items_listbox.curselection()
-            if not selection:
-                messagebox.showerror("Error", "Please select an image from the list.")
-                return
-
-            index = selection[0]
-            selected_item = search_results.item_collection()[index]
-            selected_format = selected_format_var.get()
-
-            image_url = selected_item.assets[selected_format].href
-            output_folder = Path(output_path_var.get())
-            output_folder.mkdir(parents=True, exist_ok=True)
-
-            file_name = Path(urlparse(image_url).path).name
-            file_path = output_folder / file_name
-
             download_image(image_url, file_path)
 
             with open(output_folder / f"{file_name}.json", "w", encoding="utf-8") as f:
                 json.dump(selected_item.to_dict(), f, indent=4)
 
+            messagebox.showinfo("Download Completed", f"Downloaded file: {file_path}")
+
+        except CancelledException:
+            if progress_bar.winfo_exists():
+                progress_text.configure(text="Download cancelled by user")
+            os.remove(file_path)
         except Exception as e:
             messagebox.showerror("Error", f"Download failed: {e}")
 
@@ -196,6 +199,7 @@ def download_image_window():
         dropdown_frame, font=("Arial", 12), state="readonly"
     )
     collection_dropdown.pack(side="left", fill="x", expand=True)
+    collection_dropdown.bind("<<ComboboxSelected>>", on_dropdown_change)
 
     raw_icon = Image.open(os.path.join(_base_dir, "../icon/reload_icon.png"))
     resized_icon = raw_icon.resize((20, 20), Image.Resampling.LANCZOS)
@@ -208,8 +212,6 @@ def download_image_window():
     )
     reload_button.image = reload_icon
     reload_button.pack(side="right", padx=5)
-
-    collection_dropdown.bind("<<ComboboxSelected>>", on_dropdown_change)
 
     for label, var in [
         ("Longitude (-180 to 180):", lon_var),
@@ -234,17 +236,14 @@ def download_image_window():
         new_window, text="Search Images", command=lambda: _run_in_thread(search_catalog)
     ).pack(pady=10)
 
-    items_listbox = tkinter.Listbox(new_window, height=5)
-    items_listbox.pack(pady=5, padx=10, fill="both", expand=True)
-
-    ttk.Button(
-        new_window,
-        text="Fetch Available Formats",
-        command=lambda: _run_in_thread(fetch_formats),
-    ).pack(pady=10)
+    items_combobox = ttk.Combobox(new_window, font=("Arial", 12), state="readonly")
+    items_combobox.pack(padx=10, pady=5, fill="x", expand=True)
+    items_combobox.bind("<<ComboboxSelected>>", lambda _: fetch_formats())
 
     ttk.Label(new_window, text="Select Image Format:", font=("Arial", 12)).pack(pady=5)
-    format_dropdown = ttk.Combobox(new_window, textvariable=selected_format_var)
+    format_dropdown = ttk.Combobox(
+        new_window, textvariable=selected_format_var, state="readonly"
+    )
     format_dropdown.pack(pady=5)
 
     ttk.Label(new_window, text="Output Directory:", font=("Arial", 12)).pack(pady=5)
@@ -253,12 +252,31 @@ def download_image_window():
     )
     ttk.Button(new_window, text="Browse", command=select_output_directory).pack(pady=5)
 
+    progress_text = ttk.Label(
+        new_window, text=" Download Progress:", font=("Arial", 12)
+    )
+    progress_text.pack(pady=5)
+    progress_bar = ttk.Progressbar(new_window, mode="determinate")
+    progress_bar.pack(pady=5, padx=10, fill="x")
+
+    button_frame = ttk.Frame(new_window)
+    button_frame.pack(pady=5)
     ttk.Button(
-        new_window,
+        button_frame,
         text="Download Image",
         command=lambda: _run_in_thread(start_download),
         bootstyle="success",
-    ).pack(pady=10)
+    ).grid(row=0, column=0, padx=10)
+    ttk.Button(
+        button_frame,
+        text="Cancel",
+        command=lambda: cancel_download_event.set(),
+        bootstyle="danger",
+    ).grid(row=0, column=1, padx=10)
+
+    new_window.protocol(
+        "WM_DELETE_WINDOW", lambda: (cancel_download_event.set(), new_window.destroy())
+    )
 
 
 def crop_image_window():
@@ -475,16 +493,16 @@ def train_new_model_window():
     canvas = FigureCanvasTkAgg(fig, master=new_window)
     canvas.get_tk_widget().pack(pady=5, fill="both", expand=True)
 
-    btn_frame = ttk.Frame(new_window)
-    btn_frame.pack(pady=5)
+    button_frame = ttk.Frame(new_window)
+    button_frame.pack(pady=5)
     ttk.Button(
-        btn_frame,
+        button_frame,
         text="Start Training",
         command=lambda: _run_in_thread(run_train_new_model),
         bootstyle="success",
     ).grid(row=0, column=0, padx=10)
     ttk.Button(
-        btn_frame, text="Cancel", command=cancel_training, bootstyle="danger"
+        button_frame, text="Cancel", command=cancel_training, bootstyle="danger"
     ).grid(row=0, column=1, padx=10)
 
     log_writer()
@@ -634,16 +652,16 @@ def continue_training_window():
     canvas = FigureCanvasTkAgg(fig, master=new_window)
     canvas.get_tk_widget().pack(pady=10, fill="both", expand=True)
 
-    btn_frame = ttk.Frame(new_window)
-    btn_frame.pack(pady=10)
+    button_frame = ttk.Frame(new_window)
+    button_frame.pack(pady=10)
     ttk.Button(
-        btn_frame,
+        button_frame,
         text="Continue Training",
         command=lambda: _run_in_thread(run_continue_training),
         bootstyle="success",
     ).grid(row=0, column=0, padx=10)
     ttk.Button(
-        btn_frame, text="Cancel", command=cancel_training, bootstyle="danger"
+        button_frame, text="Cancel", command=cancel_training, bootstyle="danger"
     ).grid(row=0, column=1, padx=10)
 
     log_writer()
@@ -684,7 +702,7 @@ def inference_window():
             messagebox.showerror("Error", "Please select an output directory.")
             return
 
-        run_btn.config(state="disabled")
+        run_button.config(state="disabled")
 
         try:
             inference(
@@ -695,7 +713,7 @@ def inference_window():
         except Exception as e:
             messagebox.showerror("Inference Error", str(e))
         finally:
-            run_btn.config(state="normal")
+            run_button.config(state="normal")
 
     for label, var, command in [
         (
@@ -718,13 +736,13 @@ def inference_window():
         )
         ttk.Button(new_window, text="Browse", command=command).pack(pady=2)
 
-    run_btn = ttk.Button(
+    run_button = ttk.Button(
         new_window,
         text="Run Inference",
         command=lambda: _run_in_thread(run_inference),
         bootstyle="success",
     )
-    run_btn.pack(pady=20)
+    run_button.pack(pady=20)
 
     new_window.protocol("WM_DELETE_WINDOW", new_window.destroy)
 
