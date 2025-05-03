@@ -33,7 +33,7 @@ def train_new_model(
     batch_size,
     log_queue=None,
     loss_callback_list=None,
-    cancel_callback=None,
+    cancel_event=None,
 ):
     (
         model,
@@ -61,7 +61,7 @@ def train_new_model(
         device,
         log_queue=log_queue,
         loss_callback_list=loss_callback_list,
-        cancel_callback=cancel_callback,
+        cancel_event=cancel_event,
     )
     trainer.train(dataset, num_epochs, batch_size)
 
@@ -74,7 +74,7 @@ def continue_training(
     batch_size,
     log_queue=None,
     loss_callback_list=None,
-    cancel_callback=None,
+    cancel_event=None,
 ):
     checkpoint = torch.load(model_path, weights_only=False)
 
@@ -95,6 +95,6 @@ def continue_training(
         current_epoch=current_epoch,
         log_queue=log_queue,
         loss_callback_list=loss_callback_list,
-        cancel_callback=cancel_callback,
+        cancel_event=cancel_event,
     )
     trainer.train(dataset, num_epochs, batch_size)

@@ -13,8 +13,6 @@ import ttkbootstrap as ttk
 from helper.preload import preload_modules
 
 
-stop_training = False
-
 _base_dir = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -356,9 +354,6 @@ def train_new_model_window():
 
     from helper.training import model_name_class, train_new_model
 
-    global stop_training
-    stop_training = False
-
     new_window = Toplevel(root)
     new_window.title("Train New Model")
     new_window.geometry("400x1000")
@@ -371,9 +366,10 @@ def train_new_model_window():
     model_architecture = StringVar()
     log_queue = queue.Queue()
 
+    stop_training = threading.Event()
+
     def on_close():
-        global stop_training
-        stop_training = True
+        stop_training.set()
 
         plt.close("all")
 
@@ -385,8 +381,7 @@ def train_new_model_window():
             var.set(path)
 
     def cancel_training():
-        global stop_training
-        stop_training = True
+        stop_training.set()
         log_queue.put("[INFO] Training cancelled by user.\n")
 
     def log_writer():
@@ -430,6 +425,7 @@ def train_new_model_window():
             return
 
         loss_history.clear()
+        stop_training.clear()
 
         log_queue.put("[INFO] Training started.\n")
 
@@ -442,10 +438,11 @@ def train_new_model_window():
                 batch_size.get(),
                 log_queue,
                 loss_history,
-                lambda: stop_training,
+                stop_training,
             )
 
-            log_queue.put("[INFO] Training completed.\n")
+            if not stop_training.is_set():
+                log_queue.put("[INFO] Training completed.\n")
         except Exception as e:
             log_queue.put(f"[ERROR] {str(e)}\n")
 
@@ -517,9 +514,6 @@ def continue_training_window():
 
     from helper.training import continue_training
 
-    global stop_training
-    stop_training = False
-
     new_window = Toplevel(root)
     new_window.title("Continue Training")
     new_window.geometry("400x1000")
@@ -533,9 +527,11 @@ def continue_training_window():
     log_queue = queue.Queue()
     loss_history = []
 
+    stop_training = threading.Event()
+
     def on_close():
-        global stop_training
-        stop_training = True
+        stop_training.set()
+
         plt.close("all")
         new_window.destroy()
 
@@ -550,8 +546,7 @@ def continue_training_window():
             var.set(path)
 
     def cancel_training():
-        global stop_training
-        stop_training = True
+        stop_training.set()
         log_queue.put("[INFO] Training cancelled by user.\n")
 
     def log_writer():
@@ -603,6 +598,7 @@ def continue_training_window():
             return
 
         loss_history.clear()
+        stop_training.clear()
 
         log_queue.put("[INFO] Training started.\n")
 
@@ -615,10 +611,11 @@ def continue_training_window():
                 batch_size.get(),
                 log_queue=log_queue,
                 loss_callback_list=loss_history,
-                cancel_callback=lambda: stop_training,
+                cancel_callback=stop_training,
             )
 
-            log_queue.put("[INFO] Training completed.\n")
+            if not stop_training.is_set():
+                log_queue.put("[INFO] Training completed.\n")
         except Exception as e:
             log_queue.put(f"[ERROR] {str(e)}\n")
 

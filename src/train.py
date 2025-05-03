@@ -21,7 +21,7 @@ class BaseTrain(ABC):
         current_epoch=0,
         log_queue=None,
         loss_callback_list=None,
-        cancel_callback=None,
+        cancel_event=None,
     ):
         self.model = model
         self.optimizer = optimizer
@@ -32,7 +32,7 @@ class BaseTrain(ABC):
         self.current_epoch = current_epoch
         self.log_queue = log_queue
         self.loss_callback_list = loss_callback_list
-        self.cancel_callback = cancel_callback
+        self.cancel_event = cancel_event
 
     @abstractmethod
     def _dataloader(self, dataset, batch_size): ...
@@ -60,7 +60,7 @@ class BaseTrain(ABC):
         best_loss = float("inf")
         best_epoch = float("inf")
         for epoch in range(self.current_epoch + 1, num_epochs + self.current_epoch + 1):
-            if self.cancel_callback and self.cancel_callback():
+            if self.cancel_event and self.cancel_event.is_set():
                 self._log("Training cancelled.")
                 break
 
