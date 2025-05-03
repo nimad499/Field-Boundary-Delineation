@@ -6,8 +6,8 @@ import rasterio
 from rasterio.windows import Window
 
 
-def crop_image(input_image_path, output_path, square_size):
-    output_path = output_path / input_image_path.name
+def crop_image(input_image_path: pathlib.Path, output_path, square_size: pathlib.Path):
+    output_path = output_path / (input_image_path.name + "_cropped")
     os.makedirs(output_path, exist_ok=True)
 
     input_image_suffix = input_image_path.suffix
@@ -34,7 +34,7 @@ def crop_image(input_image_path, output_path, square_size):
 
                 with rasterio.open(
                     output_path
-                    / f"{int(col/window_width)}_{int(row/window_height)}{input_image_suffix}",
+                    / f"{int(col / window_width)}_{int(row / window_height)}{input_image_suffix}",
                     "w",
                     height=window.height,
                     width=window.width,
@@ -56,9 +56,7 @@ def main_function():
         required=True,
         type=pathlib.Path,
     )
-    parser.add_argument(
-        "-s", "--size", help="Square size", required=True, type=int
-    )
+    parser.add_argument("-s", "--size", help="Square size", required=True, type=int)
     args = parser.parse_args()
 
     input_image_path = args.input
