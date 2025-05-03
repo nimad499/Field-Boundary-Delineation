@@ -290,7 +290,7 @@ def crop_image_window():
 
     def select_image_file():
         path = filedialog.askopenfilename(
-            filetypes=[("Image Files", "*.tif;*.tiff"), ("All Files", "*.*")]
+            filetypes=[("Image Files", ["*.tif", "*.tiff"]), ("All Files", "*.*")]
         )
         if path:
             image_path.set(path)
@@ -320,7 +320,7 @@ def crop_image_window():
             return
 
         try:
-            crop_image(image_path.get(), output_path.get(), size)
+            crop_image(Path(image_path.get()), Path(output_path.get()), size)
             messagebox.showinfo("Success", "Image cropped successfully!")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to crop image: {e}")
