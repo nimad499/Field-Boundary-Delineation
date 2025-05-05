@@ -1,6 +1,7 @@
 import json
 import os
 import queue
+import sys
 import threading
 import tkinter as tk
 from datetime import datetime
@@ -12,8 +13,10 @@ import ttkbootstrap as ttk
 
 from helper.preload import preload_modules
 
-
-_base_dir = os.path.dirname(os.path.abspath(__file__))
+if getattr(sys, "frozen", False):
+    _base_dir = os.path.join(sys._MEIPASS)
+else:
+    _base_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def _run_in_thread(function: callable):
