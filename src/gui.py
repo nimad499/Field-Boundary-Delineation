@@ -615,7 +615,7 @@ def continue_training_window():
                 batch_size.get(),
                 log_queue=log_queue,
                 loss_callback_list=loss_history,
-                cancel_callback=stop_training,
+                cancel_event=stop_training,
             )
 
             if not stop_training.is_set():
