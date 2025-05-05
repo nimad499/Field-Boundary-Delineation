@@ -82,7 +82,7 @@ def continue_training(
     optimizer = checkpoint["optimizer"]
     current_epoch = checkpoint["epoch"]
 
-    _, appropriate_dataset, appropriate_trainer = model_class_options(model.__class__)
+    _, appropriate_dataset, appropriate_trainer = model_class_options[model.__class__]
     dataset = ConcatDataset([appropriate_dataset(i, b) for i, b in dataset_paths])
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
