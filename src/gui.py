@@ -15,6 +15,7 @@ from helper.preload import preload_modules
 
 if getattr(sys, "frozen", False):
     _base_dir = os.path.join(sys._MEIPASS)
+    os.environ["GDAL_DATA"] = os.path.join(sys._MEIPASS, "gdal_data")
 else:
     _base_dir = os.path.dirname(os.path.abspath(__file__))
 
