@@ -35,12 +35,12 @@ def _run_in_thread(function: callable):
 _run_in_thread.active_thread_function = {}
 
 
-def download_image_window():
+def download_image_window(root_window):
     from PIL import Image, ImageTk
 
     from image_download import get_catalog
 
-    new_window = Toplevel(root)
+    new_window = Toplevel(root_window)
     new_window.title("Download Image")
     new_window.geometry("500x850")
 
@@ -52,8 +52,7 @@ def download_image_window():
     output_path_var = StringVar()
     selected_format_var = StringVar()
 
-    search_results = []
-    items_df = None
+    search_results = None
     cancel_download_event = threading.Event()
 
     def search_catalog():
@@ -61,7 +60,7 @@ def download_image_window():
 
         from image_download import catalog_search
 
-        nonlocal search_results, items_df
+        nonlocal search_results
 
         try:
             lon = float(lon_var.get())
@@ -272,7 +271,7 @@ def download_image_window():
     ttk.Button(
         button_frame,
         text="Cancel",
-        command=lambda: cancel_download_event.set(),
+        command=cancel_download_event.set,
         bootstyle="danger",
     ).grid(row=0, column=1, padx=10)
 
@@ -281,8 +280,8 @@ def download_image_window():
     )
 
 
-def crop_image_window():
-    new_window = Toplevel(root)
+def crop_image_window(root_window):
+    new_window = Toplevel(root_window)
     new_window.title("Crop Image")
     new_window.geometry("400x410")
 
@@ -352,13 +351,13 @@ def crop_image_window():
     ).pack(pady=20)
 
 
-def train_new_model_window():
+def train_new_model_window(root_window):
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
     from helper.training import model_name_class, train_new_model
 
-    new_window = Toplevel(root)
+    new_window = Toplevel(root_window)
     new_window.title("Train New Model")
     new_window.geometry("400x1000")
 
@@ -512,13 +511,13 @@ def train_new_model_window():
     new_window.protocol("WM_DELETE_WINDOW", on_close)
 
 
-def continue_training_window():
+def continue_training_window(root_window):
     import matplotlib.pyplot as plt
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
     from helper.training import continue_training
 
-    new_window = Toplevel(root)
+    new_window = Toplevel(root_window)
     new_window.title("Continue Training")
     new_window.geometry("400x1000")
 
@@ -671,8 +670,8 @@ def continue_training_window():
     new_window.protocol("WM_DELETE_WINDOW", on_close)
 
 
-def inference_window():
-    new_window = Toplevel(root)
+def inference_window(root_window):
+    new_window = Toplevel(root_window)
     new_window.title("Inference")
     new_window.geometry("400x420")
 
@@ -748,8 +747,8 @@ def inference_window():
     new_window.protocol("WM_DELETE_WINDOW", new_window.destroy)
 
 
-def quit_application():
-    root.destroy()
+def quit_application(root_window):
+    root_window.destroy()
 
 
 if __name__ == "__main__":
@@ -763,20 +762,26 @@ if __name__ == "__main__":
     frm = ttk.Frame(root, padding=20)
     frm.pack(fill="both", expand=True)
 
-    ttk.Button(frm, text="Download Image", command=download_image_window).pack(
-        pady=5, fill="x"
-    )
-    ttk.Button(frm, text="Crop Image", command=crop_image_window).pack(pady=5, fill="x")
-    ttk.Button(frm, text="Train New Model", command=train_new_model_window).pack(
+    ttk.Button(
+        frm, text="Download Image", command=lambda: download_image_window(root)
+    ).pack(pady=5, fill="x")
+    ttk.Button(frm, text="Crop Image", command=lambda: crop_image_window(root)).pack(
         pady=5, fill="x"
     )
     ttk.Button(
+        frm, text="Train New Model", command=lambda: train_new_model_window(root)
+    ).pack(pady=5, fill="x")
+    ttk.Button(
         frm,
         text="Continue Training",
-        command=continue_training_window,
+        command=lambda: continue_training_window(root),
     ).pack(pady=5, fill="x")
-    ttk.Button(frm, text="Inference", command=inference_window).pack(pady=5, fill="x")
-    ttk.Button(frm, text="Quit", command=quit_application).pack(pady=5, fill="x")
+    ttk.Button(frm, text="Inference", command=lambda: inference_window(root)).pack(
+        pady=5, fill="x"
+    )
+    ttk.Button(frm, text="Quit", command=lambda: quit_application(root)).pack(
+        pady=5, fill="x"
+    )
 
     preload_modules()
 
