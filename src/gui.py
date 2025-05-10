@@ -158,6 +158,8 @@ def download_image_window(root_window):
         file_name = Path(urlparse(image_url).path).name
         file_path = output_folder / file_name
 
+        download_button.config(state="disabled")
+
         try:
             download_image(image_url, file_path)
 
@@ -172,6 +174,8 @@ def download_image_window(root_window):
             os.remove(file_path)
         except Exception as e:
             messagebox.showerror("Error", f"Download failed: {e}")
+        finally:
+            download_button.config(state="normal")
 
     def fetch_collections():
         try:
@@ -234,7 +238,7 @@ def download_image_window(root_window):
         date_entry.pack(pady=5, padx=10, fill="x")
 
     ttk.Button(
-        new_window, text="Search Images", command=lambda: _run_in_thread(search_catalog)
+        new_window, text="Fetch Images", command=lambda: _run_in_thread(search_catalog)
     ).pack(pady=10)
 
     items_combobox = ttk.Combobox(new_window, font=("Arial", 12), state="readonly")
@@ -262,12 +266,13 @@ def download_image_window(root_window):
 
     button_frame = ttk.Frame(new_window)
     button_frame.pack(pady=5)
-    ttk.Button(
+    download_button = ttk.Button(
         button_frame,
         text="Download Image",
         command=lambda: _run_in_thread(start_download),
         bootstyle="success",
-    ).grid(row=0, column=0, padx=10)
+    )
+    download_button.grid(row=0, column=0, padx=10)
     ttk.Button(
         button_frame,
         text="Cancel",
@@ -320,11 +325,15 @@ def crop_image_window(root_window):
             )
             return
 
+        crop_button.config(state="disabled")
+
         try:
             crop_image(Path(image_path.get()), Path(output_path.get()), size)
             messagebox.showinfo("Success", "Image cropped successfully!")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to crop image: {e}")
+        finally:
+            crop_button.config(state="normal")
 
     ttk.Label(new_window, text="Image File:", font=("Arial", 12)).pack(pady=5)
     ttk.Entry(new_window, textvariable=image_path, font=("Arial", 10)).pack(
@@ -343,12 +352,13 @@ def crop_image_window(root_window):
         pady=5, padx=10, fill="x"
     )
 
-    ttk.Button(
+    crop_button = ttk.Button(
         new_window,
         text="Crop",
         command=lambda: _run_in_thread(run_crop_image),
         bootstyle="success",
-    ).pack(pady=20)
+    )
+    crop_button.pack(pady=20)
 
 
 def train_new_model_window(root_window):
@@ -432,6 +442,8 @@ def train_new_model_window(root_window):
 
         log_queue.put("[INFO] Training started.\n")
 
+        train_button.config(state="disabled")
+
         try:
             train_new_model(
                 model_architecture.get(),
@@ -448,6 +460,8 @@ def train_new_model_window(root_window):
                 log_queue.put("[INFO] Training completed.\n")
         except Exception as e:
             log_queue.put(f"[ERROR] {str(e)}\n")
+        finally:
+            train_button.config(state="normal")
 
     for label, var, command in [
         ("Images Path:", images_path, lambda: select_dir(images_path)),
@@ -495,12 +509,13 @@ def train_new_model_window(root_window):
 
     button_frame = ttk.Frame(new_window)
     button_frame.pack(pady=5)
-    ttk.Button(
+    train_button = ttk.Button(
         button_frame,
         text="Start Training",
         command=lambda: _run_in_thread(run_train_new_model),
         bootstyle="success",
-    ).grid(row=0, column=0, padx=10)
+    )
+    train_button.grid(row=0, column=0, padx=10)
     ttk.Button(
         button_frame, text="Cancel", command=cancel_training, bootstyle="danger"
     ).grid(row=0, column=1, padx=10)
@@ -605,6 +620,8 @@ def continue_training_window(root_window):
 
         log_queue.put("[INFO] Training started.\n")
 
+        train_button.config(state="disabled")
+
         try:
             continue_training(
                 Path(model_path.get()),
@@ -621,6 +638,8 @@ def continue_training_window(root_window):
                 log_queue.put("[INFO] Training completed.\n")
         except Exception as e:
             log_queue.put(f"[ERROR] {str(e)}\n")
+        finally:
+            train_button.config(state="normal")
 
     for label, var, command in [
         (
@@ -654,12 +673,13 @@ def continue_training_window(root_window):
 
     button_frame = ttk.Frame(new_window)
     button_frame.pack(pady=10)
-    ttk.Button(
+    train_button = ttk.Button(
         button_frame,
         text="Continue Training",
         command=lambda: _run_in_thread(run_continue_training),
         bootstyle="success",
-    ).grid(row=0, column=0, padx=10)
+    )
+    train_button.grid(row=0, column=0, padx=10)
     ttk.Button(
         button_frame, text="Cancel", command=cancel_training, bootstyle="danger"
     ).grid(row=0, column=1, padx=10)
