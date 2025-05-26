@@ -69,7 +69,9 @@ def download_image_window(root_window):
             end_date = datetime.strptime(end_date_var.get(), "%Y-%m-%d").date()
 
             if start_date > end_date:
-                messagebox.showerror("Error", "Start date must be before End date.")
+                messagebox.showerror(
+                    "Error", "Start date must be before End date.", parent=new_window
+                )
                 return
 
             search_results = catalog_search(
@@ -87,6 +89,7 @@ def download_image_window(root_window):
                 messagebox.showinfo(
                     "No Results",
                     "No images found for the given location and date range.",
+                    parent=new_window,
                 )
                 return
 
@@ -102,11 +105,13 @@ def download_image_window(root_window):
 
         except ValueError:
             messagebox.showerror(
-                "Error", "Invalid longitude, latitude, or date format."
+                "Error",
+                "Invalid longitude, latitude, or date format.",
+                parent=new_window,
             )
 
     def select_output_directory():
-        path = filedialog.askdirectory()
+        path = filedialog.askdirectory(parent=new_window)
         if path:
             output_path_var.set(path)
 
@@ -166,14 +171,16 @@ def download_image_window(root_window):
             with open(output_folder / f"{file_name}.json", "w", encoding="utf-8") as f:
                 json.dump(selected_item.to_dict(), f, indent=4)
 
-            messagebox.showinfo("Download Completed", f"Downloaded file: {file_path}")
+            messagebox.showinfo(
+                "Download Completed", f"Downloaded file: {file_path}", parent=new_window
+            )
 
         except CancelledException:
             if progress_bar.winfo_exists():
                 progress_text.configure(text="Download cancelled by user")
             os.remove(file_path)
         except Exception as e:
-            messagebox.showerror("Error", f"Download failed: {e}")
+            messagebox.showerror("Error", f"Download failed: {e}", parent=new_window)
         finally:
             download_button.config(state="normal")
 
@@ -185,7 +192,9 @@ def download_image_window(root_window):
                 collection_dropdown.current(0)
                 collection_var.set(collections[0])
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to fetch collections: {e}")
+            messagebox.showerror(
+                "Error", f"Failed to fetch collections: {e}", parent=new_window
+            )
 
     def on_dropdown_change(event):
         selected = collection_dropdown.get()
@@ -296,13 +305,14 @@ def crop_image_window(root_window):
 
     def select_image_file():
         path = filedialog.askopenfilename(
-            filetypes=[("Image Files", ["*.tif", "*.tiff"]), ("All Files", "*.*")]
+            filetypes=[("Image Files", ["*.tif", "*.tiff"]), ("All Files", "*.*")],
+            parent=new_window,
         )
         if path:
             image_path.set(path)
 
     def select_output_directory():
-        path = filedialog.askdirectory()
+        path = filedialog.askdirectory(parent=new_window)
         if path:
             output_path.set(path)
 
@@ -310,10 +320,14 @@ def crop_image_window(root_window):
         from image_crop import crop_image
 
         if not image_path.get():
-            messagebox.showerror("Error", "Please select an image file.")
+            messagebox.showerror(
+                "Error", "Please select an image file.", parent=new_window
+            )
             return
         if not output_path.get():
-            messagebox.showerror("Error", "Please select an output directory.")
+            messagebox.showerror(
+                "Error", "Please select an output directory.", parent=new_window
+            )
             return
         try:
             size = crop_size.get()
@@ -321,7 +335,9 @@ def crop_image_window(root_window):
                 raise ValueError("Crop size must be a positive integer.")
         except ValueError:
             messagebox.showerror(
-                "Error", "Invalid crop size. Enter a positive integer."
+                "Error",
+                "Invalid crop size. Enter a positive integer.",
+                parent=new_window,
             )
             return
 
@@ -329,9 +345,13 @@ def crop_image_window(root_window):
 
         try:
             crop_image(Path(image_path.get()), Path(output_path.get()), size)
-            messagebox.showinfo("Success", "Image cropped successfully!")
+            messagebox.showinfo(
+                "Success", "Image cropped successfully!", parent=new_window
+            )
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to crop image: {e}")
+            messagebox.showerror(
+                "Error", f"Failed to crop image: {e}", parent=new_window
+            )
         finally:
             crop_button.config(state="normal")
 
@@ -389,7 +409,7 @@ def train_new_model_window(root_window):
         new_window.destroy()
 
     def select_dir(var):
-        path = filedialog.askdirectory()
+        path = filedialog.askdirectory(parent=new_window)
         if path:
             var.set(path)
 
@@ -410,13 +430,19 @@ def train_new_model_window(root_window):
 
     def run_train_new_model():
         if not images_path.get():
-            messagebox.showerror("Error", "Please select images path.")
+            messagebox.showerror(
+                "Error", "Please select images path.", parent=new_window
+            )
             return
         if not boundaries_path.get():
-            messagebox.showerror("Error", "Please select boundaries path.")
+            messagebox.showerror(
+                "Error", "Please select boundaries path.", parent=new_window
+            )
             return
         if not output_path.get():
-            messagebox.showerror("Error", "Please select an output directory.")
+            messagebox.showerror(
+                "Error", "Please select an output directory.", parent=new_window
+            )
             return
         try:
             epochs = num_epochs.get()
@@ -424,7 +450,9 @@ def train_new_model_window(root_window):
                 raise ValueError("Number of epochs must be a positive integer.")
         except ValueError:
             messagebox.showerror(
-                "Error", "Invalid number of epochs. Please enter a positive integer."
+                "Error",
+                "Invalid number of epochs. Please enter a positive integer.",
+                parent=new_window,
             )
             return
         try:
@@ -433,7 +461,9 @@ def train_new_model_window(root_window):
                 raise ValueError("Batch size must be a positive integer.")
         except ValueError:
             messagebox.showerror(
-                "Error", "Invalid batch size. Please enter a positive integer."
+                "Error",
+                "Invalid batch size. Please enter a positive integer.",
+                parent=new_window,
             )
             return
 
@@ -554,12 +584,12 @@ def continue_training_window(root_window):
         new_window.destroy()
 
     def select_file(var, filetypes):
-        path = filedialog.askopenfilename(filetypes=filetypes)
+        path = filedialog.askopenfilename(filetypes=filetypes, parent=new_window)
         if path:
             var.set(path)
 
     def select_dir(var):
-        path = filedialog.askdirectory()
+        path = filedialog.askdirectory(parent=new_window)
         if path:
             var.set(path)
 
@@ -589,30 +619,40 @@ def continue_training_window(root_window):
 
     def run_continue_training():
         if not model_path.get():
-            messagebox.showerror("Error", "Please select a model file.")
+            messagebox.showerror(
+                "Error", "Please select a model file.", parent=new_window
+            )
             return
         if not images_path.get():
-            messagebox.showerror("Error", "Please select images path.")
+            messagebox.showerror(
+                "Error", "Please select images path.", parent=new_window
+            )
             return
         if not boundaries_path.get():
-            messagebox.showerror("Error", "Please select boundaries path.")
+            messagebox.showerror(
+                "Error", "Please select boundaries path.", parent=new_window
+            )
             return
         if not output_path.get():
-            messagebox.showerror("Error", "Please select an output directory.")
+            messagebox.showerror(
+                "Error", "Please select an output directory.", parent=new_window
+            )
             return
         try:
             epochs = num_epochs.get()
             if epochs <= 0:
                 raise ValueError()
         except ValueError:
-            messagebox.showerror("Error", "Invalid number of epochs.")
+            messagebox.showerror(
+                "Error", "Invalid number of epochs.", parent=new_window
+            )
             return
         try:
             batch = batch_size.get()
             if batch <= 0:
                 raise ValueError()
         except ValueError:
-            messagebox.showerror("Error", "Invalid batch size.")
+            messagebox.showerror("Error", "Invalid batch size.", parent=new_window)
             return
 
         loss_history.clear()
@@ -700,12 +740,12 @@ def inference_window(root_window):
     output_path = StringVar()
 
     def select_file(var, filetypes):
-        path = filedialog.askopenfilename(filetypes=filetypes)
+        path = filedialog.askopenfilename(filetypes=filetypes, parent=new_window)
         if path:
             var.set(path)
 
     def select_dir(var):
-        path = filedialog.askdirectory()
+        path = filedialog.askdirectory(parent=new_window)
         if path:
             var.set(path)
 
@@ -713,13 +753,19 @@ def inference_window(root_window):
         from helper.model_utils import inference
 
         if not model_path.get():
-            messagebox.showerror("Error", "Please select a model file.")
+            messagebox.showerror(
+                "Error", "Please select a model file.", parent=new_window
+            )
             return
         if not image_path.get():
-            messagebox.showerror("Error", "Please select an image file.")
+            messagebox.showerror(
+                "Error", "Please select an image file.", parent=new_window
+            )
             return
         if not output_path.get():
-            messagebox.showerror("Error", "Please select an output directory.")
+            messagebox.showerror(
+                "Error", "Please select an output directory.", parent=new_window
+            )
             return
 
         run_button.config(state="disabled")
@@ -731,7 +777,7 @@ def inference_window(root_window):
                 Path(output_path.get()),
             )
         except Exception as e:
-            messagebox.showerror("Inference Error", str(e))
+            messagebox.showerror("Inference Error", str(e), parent=new_window)
         finally:
             run_button.config(state="normal")
 
