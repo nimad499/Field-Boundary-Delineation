@@ -7,6 +7,7 @@ import tkinter as tk
 from datetime import datetime
 from pathlib import Path
 from tkinter import IntVar, StringVar, Toplevel, filedialog, messagebox
+from typing import Callable
 from urllib.parse import urlparse
 
 import ttkbootstrap as ttk
@@ -20,7 +21,7 @@ else:
     _base_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-def _run_in_thread(function: callable):
+def _run_in_thread(function: Callable):
     if (
         function in _run_in_thread.active_thread_function.keys()
         and _run_in_thread.active_thread_function[function].is_alive()
