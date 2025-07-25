@@ -6,7 +6,7 @@ import rasterio
 from rasterio.windows import Window
 
 
-def crop_image(input_image_path: pathlib.Path, output_path, square_size: pathlib.Path):
+def crop_image(input_image_path: pathlib.Path, output_path, square_size: int):
     output_path = output_path / (input_image_path.name + "_cropped")
     os.makedirs(output_path, exist_ok=True)
 
@@ -18,8 +18,8 @@ def crop_image(input_image_path: pathlib.Path, output_path, square_size: pathlib
             square_size,
         )
 
-        image_width = src.width
-        image_height = src.height
+        image_width: int = src.width
+        image_height: int = src.height
 
         for row in range(0, image_height, window_height):
             for col in range(0, image_width, window_width):
