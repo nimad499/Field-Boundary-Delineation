@@ -852,4 +852,11 @@ if __name__ == "__main__":
 
     preload_modules()
 
+    if not sys.stdout or not sys.stderr:
+        if sys.stdin and sys.stdin.isatty():
+            pass
+        else:
+            sys.stdout = open(os.devnull, "w")
+            sys.stderr = open(os.devnull, "w")
+
     root.mainloop()
